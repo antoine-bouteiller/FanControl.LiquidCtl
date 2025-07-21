@@ -6,6 +6,7 @@ import msgspec
 from liquidctl_bridge.liquidctl_service import LiquidctlService
 from liquidctl_bridge.models import BadRequestException, PipeRequest
 from liquidctl_bridge.pipe_server import Server
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,8 +23,6 @@ pipe_name = "LiquidCtlPipe"
 
 def process_command(request: PipeRequest, liquidctl_service: LiquidctlService):
     match request.command:
-        case "initialize":
-            return liquidctl_service.initialize_all()
         case "get.statuses":
             return liquidctl_service.get_statuses()
         case "set.fixed_speed":
@@ -33,8 +32,6 @@ def process_command(request: PipeRequest, liquidctl_service: LiquidctlService):
                 request.data.device_id,
                 msgspec.to_builtins(request.data.speed_kwargs),
             )
-        case _:
-            raise BadRequestException(f"Unknown command: {request.command}")
 
 
 def handle_pipe_message(liquidctl_service: LiquidctlService, pipe: Server):
@@ -50,9 +47,12 @@ def handle_pipe_message(liquidctl_service: LiquidctlService, pipe: Server):
 def main():
     with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
         logger.info("Started Liquidctl Bridge Server")
+        liquidctl_service.initialize_all()
         while True:
             if pipe.alive:
                 handle_pipe_message(liquidctl_service, pipe)
+            else:
+                time.sleep(0.2)
 
 
 if __name__ == "__main__":

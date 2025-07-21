@@ -8,7 +8,7 @@ namespace FanControl.LiquidCtl
 
 		private Dictionary<string, DeviceSensor> sensors = [];
 		private readonly IPluginLogger _logger = logger;
-		private readonly LiquidctlBridgeWrapper liquidctl = new LiquidctlBridgeWrapper(logger);
+		private readonly LiquidctlBridgeWrapper liquidctl = new(logger);
 
 		public void Close()
 		{
@@ -17,7 +17,7 @@ namespace FanControl.LiquidCtl
 
 		public void Initialize()
 		{
-			liquidctl.InitAll();
+			liquidctl.Init();
 		}
 
 		public void Load(IPluginSensorsContainer _container)

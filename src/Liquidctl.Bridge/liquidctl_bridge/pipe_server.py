@@ -14,6 +14,8 @@ PIPE_ACCESS_DUPLEX = 0x00000003
 PIPE_TYPE_MESSAGE = 0x00000004
 PIPE_READMODE_MESSAGE = 0x00000002
 ERROR_PIPE_BUSY = 231
+MAX_MESSAGE_SIZE = 4096
+TIMEOUT = 100
 
 try:
     kernel32 = ctypes.windll.kernel32
@@ -40,8 +42,8 @@ class Base:
         if not self.alive or not self.handle:
             return
 
-        if not self.canread():
-            time.sleep(0.1)
+        while not self.canread():
+            time.sleep(0.2)
 
         buf = ctypes.create_string_buffer(4096)
         cnt_buffer = ctypes.c_uint(0)
@@ -108,14 +110,9 @@ class Server(Base):
     def __init__(
         self,
         name: str,
-        *,
-        maxmessagesz: int = 4096,
-        maxtime: int = 100,
     ) -> None:
         super().__init__(Mode.SLAVE)
         self.name = name
-        self.maxmessagesz = maxmessagesz
-        self.maxtime = maxtime
         self.shutdown = False
         self.hasdata = False
 
@@ -129,8 +126,8 @@ class Server(Base):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is KeyboardInterrupt:
             logger.info("KeyboardInterrupt detected, cleaning up Server...")
-        else:
-            logger.info(exc_value)
+        elif exc_value is not None:
+            logger.error(exc_value, traceback)
 
         try:
             self.close()
@@ -161,9 +158,9 @@ class Server(Base):
                     PIPE_ACCESS_DUPLEX,
                     PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
                     1,  # Only 1 client allowed
-                    self.maxmessagesz,
-                    self.maxmessagesz,
-                    self.maxtime,
+                    MAX_MESSAGE_SIZE,
+                    MAX_MESSAGE_SIZE,
+                    TIMEOUT,
                     None,
                 )
 
@@ -184,4 +181,4 @@ class Server(Base):
                 self.handle = nph
                 self.alive = True
             else:
-                time.sleep(0.1)
+                time.sleep(0.2)
