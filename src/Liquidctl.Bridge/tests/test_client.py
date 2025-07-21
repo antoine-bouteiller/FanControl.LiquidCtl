@@ -65,6 +65,8 @@ class TestClient(Base):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is KeyboardInterrupt:
             logger.info("KeyboardInterrupt detected, cleaning up TestClient...")
+        elif exc_value is not None:
+            logger.error(exc_value, traceback)
 
         try:
             self.close()
