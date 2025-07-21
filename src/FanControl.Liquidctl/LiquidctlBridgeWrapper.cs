@@ -56,7 +56,6 @@ namespace FanControl.LiquidCtl
                     };
 
                     bridgeProcess.Start();
-                    Thread.Sleep(1000);
                 }
             }
         }
@@ -82,6 +81,12 @@ namespace FanControl.LiquidCtl
                     }
                 }
             }
+        }
+
+        public void Init()
+        {
+            EnsureBridgeProcessRunning();
+            EnsurePipeConnection();
         }
 
         private string SendPipeRequest(PipeRequest request)
@@ -116,16 +121,6 @@ namespace FanControl.LiquidCtl
                     throw new Exception($"Erreur de communication avec le serveur liquidctl: {ex.Message}", ex);
                 }
             }
-        }
-
-        public void InitAll()
-        {
-            var request = new PipeRequest
-            {
-                command = "initialize"
-            };
-
-            SendPipeRequest(request);
         }
 
         public List<DeviceStatus> GetStatuses()

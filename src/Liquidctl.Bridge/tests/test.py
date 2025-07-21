@@ -22,8 +22,10 @@ def main():
         client.sendRequest("initialize")
 
         res = client.sendRequest("get.statuses")
+        logger.info(res)
         if res is not None:
             res = msgspec.json.decode(res, type=List[DeviceStatus])
+            logger.info(res)
             for device in res:
                 logger.info(device)
                 status = next(status for status in device.status if status.unit == "%")
@@ -31,9 +33,7 @@ def main():
                     "set.fixed_speed",
                     FixedSpeedRequest(
                         device_id=device.id,
-                        speed_kwargs=SpeedKwargs(
-                            channel=status.key.replace(" ", ""), duty=10
-                        ),
+                        speed_kwargs=SpeedKwargs(channel=status.key, duty=0),
                     ),
                 )
         else:

@@ -21,7 +21,7 @@ namespace FanControl.LiquidCtl
 
 	public class DeviceSensor : IPluginSensor
 	{
-		public string Id => $"{Device.description}_{Channel.key}";
+		public string Id => $"{Device.description}/{Channel.key}".Replace(" ", "");
 		public string Name => $"{Device.description}: {Channel.key}";
 		public float? Value => (float?)Channel.value;
 
