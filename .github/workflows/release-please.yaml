@@ -1,0 +1,55 @@
+on:
+  push:
+    branches:
+      - main
+
+name: release-please
+permissions:
+  contents: write # to create release commit (google-github-actions/release-please-action)
+  pull-requests: write # to create release PR (google-github-actions/release-please-action)
+  issues: write # to add labels (google-github-actions/release-please-action)
+jobs:
+  release-please:
+    runs-on: windows-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: simple
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Install Python
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+
+      - name: Install poetry
+        if: ${{ steps.release.outputs.release_created }}
+        uses: abatilo/actions-poetry@v4
+
+      - name: Build app
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          Set-Location .\src\FanControl.Liquidctl
+          dotnet build
+
+          Set-Location ..\Liquidctl.Bridge
+          poetry install
+          poetry run pyinstaller --onefile ".\liquidctl_bridge\server.py" -n liquidctl_bridge --clean
+
+          Set-Location ..\..
+
+          $compress = @{
+            Path            = ".\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll", ".\src\Liquidctl.Bridge\dist\liquidctl_bridge.exe"
+            DestinationPath = ".\FanControl.Liquidctl.zip"
+          }
+          Compress-Archive @compress
+
+      - name: Upload Release Artifact
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} ./FanControl.liquidCtl.zip
