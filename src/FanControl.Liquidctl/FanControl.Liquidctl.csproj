@@ -15,10 +15,10 @@
 
   <ItemGroup>
     <Reference Include="FanControl.Plugins">
-      <HintPath>..\..\..\FanControl\FanControl.Plugins.dll</HintPath>
+      <HintPath>.\ref\FanControl.Plugins.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\FanControl\Newtonsoft.Json.dll</HintPath>
+      <HintPath>.\ref\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 
