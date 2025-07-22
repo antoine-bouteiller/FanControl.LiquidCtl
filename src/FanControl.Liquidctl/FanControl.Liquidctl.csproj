@@ -22,9 +22,4 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="build-liquidctl.sh" />
-    <None Include="build-release.ps1" />
-  </ItemGroup>
-
 </Project>
