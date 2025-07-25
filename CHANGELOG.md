@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/AntoBouteiller/FanControl.LiquidCtl/compare/v1.0.0...v1.0.1) (2025-07-25)
+
+
+### Bug Fixes
+
+* update readme and fix logs being in french ([0f7cc7a](https://github.com/AntoBouteiller/FanControl.LiquidCtl/commit/0f7cc7abc1c937bd2b452de8cd7378302c83c3f8))
+
 ## 1.0.0 (2025-07-22)
 
 ### Features
