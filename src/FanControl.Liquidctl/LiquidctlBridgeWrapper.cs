@@ -6,7 +6,6 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    // Classes pour la communication avec le serveur Named Pipe
     public class PipeRequest
     {
         public required string command { get; set; }
@@ -74,7 +73,7 @@ namespace FanControl.LiquidCtl
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log($"Erreur lors de la connexion au Named Pipe: {ex.Message}");
+                        _logger.Log($"Error connecting to Named Pipe: {ex.Message}");
                         _pipeClient?.Dispose();
                         _pipeClient = null;
                         throw;
@@ -98,7 +97,7 @@ namespace FanControl.LiquidCtl
             {
                 if (_pipeClient == null || !_pipeClient.IsConnected)
                 {
-                    throw new Exception("Impossible d'établir une connexion au serveur liquidctl");
+                    throw new Exception("Unable to establish connection to liquidctl server");
                 }
 
                 try
@@ -115,10 +114,10 @@ namespace FanControl.LiquidCtl
                 }
                 catch (Exception ex)
                 {
-                    _logger.Log($"Erreur de communication avec le serveur liquidctl: {ex.Message}");
+                    _logger.Log($"Communication error with liquidctl server: {ex.Message}");
                     _pipeClient?.Dispose();
                     _pipeClient = null;
-                    throw new Exception($"Erreur de communication avec le serveur liquidctl: {ex.Message}", ex);
+                    throw new Exception($"Communication error with liquidctl server: {ex.Message}", ex);
                 }
             }
         }
@@ -137,7 +136,7 @@ namespace FanControl.LiquidCtl
             }
             catch (Exception ex)
             {
-                _logger.Log($"Erreur lors de la récupération des statuses: {ex.Message}");
+                _logger.Log($"Error retrieving statuses: {ex.Message}");
                 return [];
             }
         }
