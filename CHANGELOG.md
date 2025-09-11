@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.1...v1.0.2) (2025-09-11)
+
+
+### Bug Fixes
+
+* increase named pipe connection timeout ([9dbbbed](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/9dbbbed725390f6a9c331d56b8e20e5561ec3e82))
+
 ## [1.0.1](https://github.com/AntoBouteiller/FanControl.LiquidCtl/compare/v1.0.0...v1.0.1) (2025-07-25)
 
 
