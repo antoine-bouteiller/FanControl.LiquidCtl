@@ -69,14 +69,13 @@ namespace FanControl.LiquidCtl
                     {
                         _pipeClient?.Dispose();
                         _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
-                        _pipeClient.Connect(5000);
+                        _pipeClient.Connect(30000);
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log($"Error connecting to Named Pipe: {ex.Message}");
                         _pipeClient?.Dispose();
                         _pipeClient = null;
-                        throw;
+                        throw new Exception($"Error connecting to Named Pipe: {ex.Message}", ex);
                     }
                 }
             }
@@ -114,7 +113,6 @@ namespace FanControl.LiquidCtl
                 }
                 catch (Exception ex)
                 {
-                    _logger.Log($"Communication error with liquidctl server: {ex.Message}");
                     _pipeClient?.Dispose();
                     _pipeClient = null;
                     throw new Exception($"Communication error with liquidctl server: {ex.Message}", ex);
