@@ -36,7 +36,7 @@ namespace FanControl.LiquidCtl
         private NamedPipeClientStream? _pipeClient;
         private readonly object _pipeLock = new object();
 
-        private static void EnsureBridgeProcessRunning()
+        private void EnsureBridgeProcessRunning()
         {
             lock (processLock)
             {
@@ -47,14 +47,28 @@ namespace FanControl.LiquidCtl
                         StartInfo = new ProcessStartInfo
                         {
                             FileName = liquidctlexe,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true
+                            UseShellExecute = true,
+                            // CreateNoWindow = true,
+                            // RedirectStandardOutput = true,
+                            // RedirectStandardError = true
                         }
                     };
 
+                    // bridgeProcess.OutputDataReceived += (sender, args) =>
+                    // {
+                    //     if (!string.IsNullOrEmpty(args.Data))
+                    //         _logger.Log($"[FanControl.LiquidCtl] {args.Data}");
+                    // };
+
+                    // bridgeProcess.ErrorDataReceived += (sender, args) =>
+                    // {
+                    //     if (!string.IsNullOrEmpty(args.Data))
+                    //         _logger.Log($"[FanControl.LiquidCtl] {args.Data}");
+                    // };
+
                     bridgeProcess.Start();
+                    // bridgeProcess.BeginOutputReadLine();
+                    // bridgeProcess.BeginErrorReadLine();
                 }
             }
         }
@@ -69,7 +83,7 @@ namespace FanControl.LiquidCtl
                     {
                         _pipeClient?.Dispose();
                         _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
-                        _pipeClient.Connect(30000);
+                        _pipeClient.Connect(5000);
                     }
                     catch (Exception ex)
                     {
