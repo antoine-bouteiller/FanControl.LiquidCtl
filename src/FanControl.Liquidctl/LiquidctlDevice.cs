@@ -1,75 +1,89 @@
 using FanControl.Plugins;
-
+using System.Text.Json.Serialization;
 
 namespace FanControl.LiquidCtl
 {
-	public class StatusValue
-	{
-		public required string key { get; set; }
-		public double? value { get; set; }
-		public required string unit { get; set; }
-	}
+    public class StatusValue
+    {
+        [JsonPropertyName("key")]
+        public required string Key { get; set; }
 
-	public class DeviceStatus
-	{
-		public required int id { get; set; }
-		public required string bus { get; set; }
-		public required string address { get; set; }
-		public required string description { get; set; }
-		public required List<StatusValue> status { get; set; }
-	}
+        [JsonPropertyName("value")]
+        public double? Value { get; set; }
 
-	public class DeviceSensor : IPluginSensor
-	{
-		public string Id => $"{Device.description}/{Channel.key}".Replace(" ", "");
-		public string Name => $"{Device.description}: {Channel.key}";
-		public float? Value => (float?)Channel.value;
+        [JsonPropertyName("unit")]
+        public required string Unit { get; set; }
+    }
 
-		public void Update() { }
-		internal void Update(StatusValue status)
-		{
-			Channel = status;
-		}
+    public class DeviceStatus
+    {
+        [JsonPropertyName("id")]
+        public required int Id { get; set; }
 
-		internal DeviceStatus Device { get; }
-		internal StatusValue Channel { get; set; }
-		internal DeviceSensor(DeviceStatus device, StatusValue channel)
-		{
-			Device = device;
-			Channel = channel;
-		}
-	}
+        [JsonPropertyName("bus")]
+        public required string Bus { get; set; }
 
-	public class ControlSensor : DeviceSensor, IPluginControlSensor
-	{
-		internal float? Initial { get; }
-		private readonly LiquidctlBridgeWrapper liquidctl;
-		internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
-			base(device, channel)
-		{
-			Initial = Value;
-			this.liquidctl = liquidctl;
-		}
+        [JsonPropertyName("address")]
+        public required string Address { get; set; }
 
-		public void Reset()
-		{
-			if (Initial != null)
-			{
-				Set(Initial.GetValueOrDefault());
-			}
-		}
+        [JsonPropertyName("description")]
+        public required string Description { get; set; }
 
-		public void Set(float val)
-		{
-			liquidctl.SetFixedSpeed(new FixedSpeedRequest
-			{
-				device_id = Device.id,
-				speed_kwargs = new SpeedKwargs
-				{
-					duty = (int)Math.Round(val),
-					channel = Channel.key.Replace(" ", "")
-				}
-			});
-		}
-	}
+        [JsonPropertyName("status")]
+        public required List<StatusValue> Status { get; set; }
+    }
+
+    public class DeviceSensor : IPluginSensor
+    {
+        public string Id => $"{Device.Description}/{Channel.Key}".Replace(" ", "");
+        public string Name => $"{Device.Description}: {Channel.Key}";
+        public float? Value => (float?)Channel.Value;
+
+        public void Update() { }
+        internal void Update(StatusValue status)
+        {
+            Channel = status;
+        }
+
+        internal DeviceStatus Device { get; }
+        internal StatusValue Channel { get; set; }
+        internal DeviceSensor(DeviceStatus device, StatusValue channel)
+        {
+            Device = device;
+            Channel = channel;
+        }
+    }
+
+    public class ControlSensor : DeviceSensor, IPluginControlSensor
+    {
+        internal float? Initial { get; }
+        private readonly LiquidctlBridgeWrapper liquidctl;
+        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
+            base(device, channel)
+        {
+            Initial = Value;
+            this.liquidctl = liquidctl;
+        }
+
+        public void Reset()
+        {
+            if (Initial != null)
+            {
+                Set(Initial.GetValueOrDefault());
+            }
+        }
+
+        public void Set(float val)
+        {
+            liquidctl.SetFixedSpeed(new FixedSpeedRequest
+            {
+                DeviceId = Device.Id,
+                SpeedKwargs = new SpeedKwargs
+                {
+                    Duty = (int)Math.Round(val),
+                    Channel = Channel.Key.Replace(" ", "")
+                }
+            });
+        }
+    }
 }

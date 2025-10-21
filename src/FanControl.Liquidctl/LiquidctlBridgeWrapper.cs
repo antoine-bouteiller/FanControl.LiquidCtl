@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
@@ -8,33 +9,41 @@ namespace FanControl.LiquidCtl
 {
     public class PipeRequest
     {
-        public required string command { get; set; }
+        [JsonPropertyName("command")]
+        public required string Command { get; set; }
 
-        public FixedSpeedRequest? data { get; set; }
+        [JsonPropertyName("data")]
+        public FixedSpeedRequest? Data { get; set; }
     }
+
     public class SpeedKwargs
     {
-        public required string channel { get; set; }
-        public required int duty { get; set; }
+        [JsonPropertyName("channel")]
+        public required string Channel { get; set; }
+
+        [JsonPropertyName("duty")]
+        public required int Duty { get; set; }
     }
 
     public class FixedSpeedRequest
     {
-        public required int device_id { get; set; }
+        [JsonPropertyName("device_id")]
+        public required int DeviceId { get; set; }
 
-        public required SpeedKwargs speed_kwargs { get; set; }
+        [JsonPropertyName("speed_kwargs")]
+        public required SpeedKwargs SpeedKwargs { get; set; }
     }
 
-    public class LiquidctlBridgeWrapper(IPluginLogger logger)
+    public class LiquidctlBridgeWrapper(IPluginLogger logger) : IDisposable
     {
         private static readonly string liquidctlexe = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "liquidctl_bridge.exe");
         private static readonly string pipeName = "LiquidCtlPipe";
         private static Process? bridgeProcess;
-        private static readonly object processLock = new object();
-        private readonly IPluginLogger _logger = logger;
-
+        private static readonly object processLock = new();
         private NamedPipeClientStream? _pipeClient;
-        private readonly object _pipeLock = new object();
+        private readonly object _pipeLock = new();
+        private bool _disposed;
+
 
         private void EnsureBridgeProcessRunning()
         {
@@ -47,30 +56,65 @@ namespace FanControl.LiquidCtl
                         StartInfo = new ProcessStartInfo
                         {
                             FileName = liquidctlexe,
-                            UseShellExecute = true,
-                            // CreateNoWindow = true,
-                            // RedirectStandardOutput = true,
-                            // RedirectStandardError = true
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true
                         }
                     };
-
-                    // bridgeProcess.OutputDataReceived += (sender, args) =>
-                    // {
-                    //     if (!string.IsNullOrEmpty(args.Data))
-                    //         _logger.Log($"[FanControl.LiquidCtl] {args.Data}");
-                    // };
-
-                    // bridgeProcess.ErrorDataReceived += (sender, args) =>
-                    // {
-                    //     if (!string.IsNullOrEmpty(args.Data))
-                    //         _logger.Log($"[FanControl.LiquidCtl] {args.Data}");
-                    // };
-
-                    bridgeProcess.Start();
-                    // bridgeProcess.BeginOutputReadLine();
-                    // bridgeProcess.BeginErrorReadLine();
+                    bridgeProcess.OutputDataReceived += (sender, args) =>
+                    {
+                        if (!string.IsNullOrEmpty(args.Data))
+                        {
+                            logger.Log($"[FanControl.LiquidCtl] {args.Data}");
+                        }
+                    };
+                    bridgeProcess.ErrorDataReceived += (sender, args) =>
+                    {
+                        if (!string.IsNullOrEmpty(args.Data))
+                        {
+                            logger.Log($"[FanControl.LiquidCtl] {args.Data}");
+                        }
+                    };
+                    _ = bridgeProcess.Start();
+                    bridgeProcess.BeginOutputReadLine();
+                    bridgeProcess.BeginErrorReadLine();
                 }
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    lock (_pipeLock)
+                    {
+                        _pipeClient?.Dispose();
+                        _pipeClient = null;
+                    }
+
+                    lock (processLock)
+                    {
+                        if (bridgeProcess != null && !bridgeProcess.HasExited)
+                        {
+                            bridgeProcess.Kill();
+                            _ = bridgeProcess.WaitForExit(1000);
+                            bridgeProcess.Dispose();
+                            bridgeProcess = null;
+                        }
+                    }
+                }
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         private void EnsurePipeConnection()
@@ -89,7 +133,7 @@ namespace FanControl.LiquidCtl
                     {
                         _pipeClient?.Dispose();
                         _pipeClient = null;
-                        throw new Exception($"Error connecting to Named Pipe: {ex.Message}", ex);
+                        throw new IOException($"Error connecting to Named Pipe: {ex.Message}", ex);
                     }
                 }
             }
@@ -110,11 +154,12 @@ namespace FanControl.LiquidCtl
             {
                 if (_pipeClient == null || !_pipeClient.IsConnected)
                 {
-                    throw new Exception("Unable to establish connection to liquidctl server");
+                    throw new IOException("Unable to establish connection to liquidctl server");
                 }
 
                 try
                 {
+                    logger.Log($"Sending command: {request.Command}");
                     string requestJson = JsonConvert.SerializeObject(request);
                     byte[] requestData = Encoding.UTF8.GetBytes(requestJson);
 
@@ -123,45 +168,51 @@ namespace FanControl.LiquidCtl
 
                     byte[] buffer = new byte[4096];
                     int bytesRead = _pipeClient.Read(buffer, 0, buffer.Length);
+                    logger.Log($"Received {bytesRead} bytes from pipe");
                     return Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    _pipeClient?.Dispose();
+                    _pipeClient.Dispose();
                     _pipeClient = null;
-                    throw new Exception($"Communication error with liquidctl server: {ex.Message}", ex);
+                    throw new IOException($"Communication error with liquidctl server: {ex.Message}", ex);
                 }
             }
         }
 
         public List<DeviceStatus> GetStatuses()
         {
-            var request = new PipeRequest
+            PipeRequest request = new()
             {
-                command = "get.statuses"
+                Command = "get.statuses"
             };
 
             try
             {
-                var response = SendPipeRequest(request);
+                string response = SendPipeRequest(request);
                 return JsonConvert.DeserializeObject<List<DeviceStatus>>(response) ?? [];
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
-                _logger.Log($"Error retrieving statuses: {ex.Message}");
+                logger.Log($"Error deserializing statuses: {ex.Message}");
+                return [];
+            }
+            catch (IOException ex)
+            {
+                logger.Log($"IO error retrieving statuses: {ex.Message}");
                 return [];
             }
         }
 
         public void SetFixedSpeed(FixedSpeedRequest requestData)
         {
-            var request = new PipeRequest
+            PipeRequest request = new()
             {
-                command = "set.fixed_speed",
-                data = requestData
+                Command = "set.fixed_speed",
+                Data = requestData
             };
 
-            SendPipeRequest(request);
+            _ = SendPipeRequest(request);
         }
 
         public void Shutdown()
