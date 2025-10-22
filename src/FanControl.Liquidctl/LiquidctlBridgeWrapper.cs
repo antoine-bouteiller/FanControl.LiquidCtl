@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
@@ -9,28 +8,28 @@ namespace FanControl.LiquidCtl
 {
     public class PipeRequest
     {
-        [JsonPropertyName("command")]
+        [JsonProperty("command")]
         public required string Command { get; set; }
 
-        [JsonPropertyName("data")]
+        [JsonProperty("data")]
         public FixedSpeedRequest? Data { get; set; }
     }
 
     public class SpeedKwargs
     {
-        [JsonPropertyName("channel")]
+        [JsonProperty("channel")]
         public required string Channel { get; set; }
 
-        [JsonPropertyName("duty")]
+        [JsonProperty("duty")]
         public required int Duty { get; set; }
     }
 
     public class FixedSpeedRequest
     {
-        [JsonPropertyName("device_id")]
+        [JsonProperty("device_id")]
         public required int DeviceId { get; set; }
 
-        [JsonPropertyName("speed_kwargs")]
+        [JsonProperty("speed_kwargs")]
         public required SpeedKwargs SpeedKwargs { get; set; }
     }
 
