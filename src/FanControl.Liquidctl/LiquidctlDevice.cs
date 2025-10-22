@@ -1,29 +1,43 @@
 using FanControl.Plugins;
-
+using System.Text.Json.Serialization;
 
 namespace FanControl.LiquidCtl
 {
 	public class StatusValue
 	{
-		public required string key { get; set; }
-		public double? value { get; set; }
-		public required string unit { get; set; }
+		[JsonPropertyName("key")]
+		public required string Key { get; set; }
+
+		[JsonPropertyName("value")]
+		public double? Value { get; set; }
+
+		[JsonPropertyName("unit")]
+		public required string Unit { get; set; }
 	}
 
 	public class DeviceStatus
 	{
-		public required int id { get; set; }
-		public required string bus { get; set; }
-		public required string address { get; set; }
-		public required string description { get; set; }
-		public required List<StatusValue> status { get; set; }
+		[JsonPropertyName("id")]
+		public required int Id { get; set; }
+
+		[JsonPropertyName("bus")]
+		public required string Bus { get; set; }
+
+		[JsonPropertyName("address")]
+		public required string Address { get; set; }
+
+		[JsonPropertyName("description")]
+		public required string Description { get; set; }
+
+		[JsonPropertyName("status")]
+		public required IReadOnlyCollection<StatusValue> Status { get; init; }
 	}
 
 	public class DeviceSensor : IPluginSensor
 	{
-		public string Id => $"{Device.description}/{Channel.key}".Replace(" ", "");
-		public string Name => $"{Device.description}: {Channel.key}";
-		public float? Value => (float?)Channel.value;
+		public string Id => $"{Device.Description}/{Channel.Key}".Replace(" ", "", StringComparison.Ordinal);
+		public string Name => $"{Device.Description}: {Channel.Key}";
+		public float? Value => (float?)Channel.Value;
 
 		public void Update() { }
 		internal void Update(StatusValue status)
@@ -63,11 +77,11 @@ namespace FanControl.LiquidCtl
 		{
 			liquidctl.SetFixedSpeed(new FixedSpeedRequest
 			{
-				device_id = Device.id,
-				speed_kwargs = new SpeedKwargs
+				DeviceId = Device.Id,
+				SpeedKwargs = new SpeedKwargs
 				{
-					duty = (int)Math.Round(val),
-					channel = Channel.key.Replace(" ", "")
+					Duty = (int)Math.Round(val),
+					Channel = Channel.Key.Replace(" ", "", StringComparison.Ordinal)
 				}
 			});
 		}
