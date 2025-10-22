@@ -62,6 +62,8 @@ namespace FanControl.LiquidCtl
                             RedirectStandardError = true
                         }
                     };
+
+                    // Attach event handlers BEFORE starting the process to avoid buffer overflow
                     bridgeProcess.OutputDataReceived += (sender, args) =>
                     {
                         if (!string.IsNullOrEmpty(args.Data))
@@ -76,9 +78,16 @@ namespace FanControl.LiquidCtl
                             logger.Log($"[FanControl.LiquidCtl] {args.Data}");
                         }
                     };
+
                     _ = bridgeProcess.Start();
+
+                    // Start reading output immediately to prevent buffer deadlock
                     bridgeProcess.BeginOutputReadLine();
                     bridgeProcess.BeginErrorReadLine();
+
+                    // Give the Python process time to initialize and create the named pipe
+                    // The Python server needs to start its thread and create the pipe
+                    System.Threading.Thread.Sleep(2000);
                 }
             }
         }
@@ -123,18 +132,47 @@ namespace FanControl.LiquidCtl
             {
                 if (_pipeClient == null || !_pipeClient.IsConnected)
                 {
-                    try
+                    const int maxRetries = 3;
+                    int retryCount = 0;
+                    Exception? lastException = null;
+
+                    while (retryCount < maxRetries)
                     {
-                        _pipeClient?.Dispose();
-                        _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
-                        _pipeClient.Connect(5000);
+                        NamedPipeClientStream? tempClient = null;
+                        try
+                        {
+                            _pipeClient?.Dispose();
+                            tempClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
+                            tempClient.Connect(5000);
+                            _pipeClient = tempClient;
+                            logger.Log("Successfully connected to liquidctl named pipe");
+                            return;
+                        }
+                        catch (TimeoutException ex)
+                        {
+                            lastException = ex;
+                            retryCount++;
+                            logger.Log($"Pipe connection attempt {retryCount}/{maxRetries} timed out");
+
+                            // tempClient is guaranteed to be non-null here since Connect() was called on it
+                            ArgumentNullException.ThrowIfNull(tempClient);
+                            tempClient.Dispose();
+                            _pipeClient = null;
+
+                            if (retryCount < maxRetries)
+                            {
+                                System.Threading.Thread.Sleep(1000);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            tempClient?.Dispose();
+                            _pipeClient = null;
+                            throw new IOException($"Error connecting to Named Pipe: {ex.Message}", ex);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        _pipeClient?.Dispose();
-                        _pipeClient = null;
-                        throw new IOException($"Error connecting to Named Pipe: {ex.Message}", ex);
-                    }
+
+                    throw new IOException($"Failed to connect to Named Pipe after {maxRetries} attempts: {lastException?.Message}", lastException);
                 }
             }
         }
