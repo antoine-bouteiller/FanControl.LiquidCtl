@@ -59,10 +59,10 @@ class LiquidctlService:
             logger.debug("ValueError when trying to find all devices", exc_info=ve)
             logger.info("No Liquidctl devices detected")
         except Exception as e:
-            logger.info("Error during initialisation", exc_info=e)
+            logger.error("Error during initialisation", exc_info=e)
 
     def get_statuses(self) -> List[DeviceStatus]:
-        logger.info(f"Getting devices statuses for {len(self.devices)} devices")
+        logger.debug(f"Getting devices statuses for {len(self.devices)} devices")
         if self.devices:
             try:
                 devices = [
