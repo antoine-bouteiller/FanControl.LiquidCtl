@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO.Pipes;
@@ -37,7 +37,7 @@ namespace FanControl.LiquidCtl
     public class LiquidctlBridgeWrapper(IPluginLogger logger) : IDisposable
     {
         private static readonly string liquidctlexe = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "liquidctl_bridge.exe");
-        private static readonly string pipeName = "LiquidCtlPipe";
+        private const string pipeName = "LiquidCtlPipe";
         private static Process? bridgeProcess;
         private static readonly object processLock = new();
         private NamedPipeClientStream? _pipeClient;
@@ -180,7 +180,7 @@ namespace FanControl.LiquidCtl
             }
         }
 
-        public List<DeviceStatus> GetStatuses()
+        public IReadOnlyCollection<DeviceStatus> GetStatuses()
         {
             PipeRequest request = new()
             {
