@@ -1,5 +1,6 @@
 import logging
 import sys
+import argparse
 
 import msgspec
 
@@ -8,17 +9,23 @@ from liquidctl_bridge.models import BadRequestException, PipeRequest
 from liquidctl_bridge.pipe_server import Server
 import time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("liquidctl_bridge.log"),
-        logging.StreamHandler(sys.stdout),
-    ],
-)
-logger = logging.getLogger(__name__)
-
 pipe_name = "LiquidCtlPipe"
+
+
+def setup_logging(log_level: str = "INFO"):
+    """Configure logging with the specified level."""
+    try:
+        level = getattr(logging, log_level.upper(), logging.INFO)
+    except AttributeError:
+        level = logging.INFO
+    
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
 
 
 def process_command(request: PipeRequest, liquidctl_service: LiquidctlService):
@@ -45,6 +52,19 @@ def handle_pipe_message(liquidctl_service: LiquidctlService, pipe: Server):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Liquidctl Bridge Server")
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level (default: INFO)",
+    )
+    args = parser.parse_args()
+    
+    setup_logging(args.log_level)
+    logger = logging.getLogger(__name__)
+    
     with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
         logger.info("Started Liquidctl Bridge Server")
         liquidctl_service.initialize_all()
