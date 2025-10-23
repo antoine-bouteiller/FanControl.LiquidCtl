@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.2...v1.0.3) (2025-10-23)
+
+
+### Bug Fixes
+
+* startup ([#8](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/8)) ([0a7c702](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/0a7c702fd0a45b8d087d1233ae21a5a3fa5bf9b5))
+
 ## [1.0.2](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.1...v1.0.2) (2025-09-11)
 
 
