@@ -83,7 +83,7 @@ namespace FanControl.LiquidCtl
                 {
                     if (!string.IsNullOrEmpty(line))
                     {
-                        logger.Log($"[FanControl.LiquidCtl]{(isError ? " ERROR" : "")} {line}");
+                        logger.Log($"[FanControl.LiquidCtl] {line}");
                     }
                 }
             }
@@ -138,7 +138,6 @@ namespace FanControl.LiquidCtl
                         _pipeClient?.Dispose();
                         _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
                         _pipeClient.Connect(5000);
-                        logger.Log("Successfully connected to liquidctl named pipe");
                     }
                     catch (Exception ex)
                     {
