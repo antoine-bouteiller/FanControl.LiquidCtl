@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 (2025-11-07)
+
+
+### Features
+
+* create project ([3920fa4](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/3920fa4676d31565f4b5522e7f4e8c1c7feb4677))
+* optimize performances and minor fixes ([d1090c1](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/d1090c1c5fcafc571c1e4f4da02f2ffe51746933))
+
+
+### Bug Fixes
+
+* increase named pipe connection timeout ([b7370b0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/b7370b09d53371efef2480f4e1a83c19f9a44612))
+* startup ([#8](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/8)) ([3a64ffc](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/3a64ffc90042d772e664a68cf28408a90ba1ea52))
+* update readme and fix logs being in french ([9c4d721](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/9c4d721eff2699814d91cbfa78102cd5469be6a7))
+
 ## [1.0.3](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.2...v1.0.3) (2025-10-23)
 
 
