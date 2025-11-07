@@ -10,7 +10,12 @@ namespace FanControl.LiquidCtl
 		private readonly LiquidctlBridgeWrapper liquidctl = new(logger);
 		private bool _disposed;
 
-		public Action RefreshRequested { get; set; } = () => { };
+		private Action? _refreshRequested;
+		public event Action RefreshRequested
+		{
+			add => _refreshRequested += value;
+			remove => _refreshRequested -= value;
+		}
 
 		public void Close()
 		{
