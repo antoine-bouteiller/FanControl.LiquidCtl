@@ -8,7 +8,9 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Pump Control**: Adjust pump speeds with precise duty cycle control
 - **Fan Control**: Monitor and control fan speeds on supported devices
 - **Wide Device Support**: Compatible with all [liquidctl supported devices](https://github.com/liquidctl/liquidctl#supported-devices)
-- **Seamless Integration**: Works natively with FanControl's interface
+- **Seamless Integration**: Works natively with FanControl's interface using IPlugin3
+- **Error Recovery**: Automatic refresh and recovery from communication errors
+- **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors using IPluginControlSensor2
 
 ## Tested Devices
 
@@ -89,27 +91,43 @@ Once installed, the plugin automatically:
 
 ## Development
 
+For detailed development documentation, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ### Prerequisites
 
 - .NET 8 SDK
 - Python 3.8+ with Poetry
 
-### Python Bridge Development
+### Quick Start
+
+#### Building the Plugin
 
 ```bash
+# Build C# plugin
+cd src/FanControl.Liquidctl
+dotnet build
+
+# Build Python bridge
 cd src/Liquidctl.Bridge
 poetry install
-poetry run python liquidctl_bridge  # Run the bridge
-poetry run python tests             # Run tests
+poetry build
 ```
 
-### .NET Plugin Development
+#### Creating a Release
 
-The project uses .NET 8 and includes all necessary references in the repository. Simply open the solution file and build.
+```powershell
+.\build.ps1
+```
 
-### Building for Release
+### Plugin Architecture
 
-Use the provided `build.ps1` script to create a complete release package.
+This plugin implements the latest FanControl plugin interfaces:
+- **IPlugin3**: Provides standard lifecycle methods and event-based refresh mechanism for error recovery
+- **IPluginControlSensor2**: Enables automatic pairing of control sensors (pump/fan duty) with their corresponding speed sensors (RPM)
+
+This means when you add a pump duty control, FanControl automatically knows which pump speed sensor to pair it with, eliminating manual configuration.
+
+For technical details about the plugin implementation, architecture, and communication protocol, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Screenshots
 
