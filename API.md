@@ -221,13 +221,18 @@ ID of the automatically paired speed (RPM) sensor for this control.
 
 **Auto-Linking Behavior:**
 - Automatically set during the `Load()` method
-- Links "Pump duty" controls to "Pump speed" sensors
-- Links "Fan duty" controls to "Fan speed" sensors
-- Uses intelligent pattern matching to find corresponding sensors
+- The Python bridge strips "duty" from control channel names
+- Control sensors arrive with keys like "pump", "fan1" (duty already removed)
+- Speed sensors arrive with keys like "pump speed", "fan1 speed"
+- Auto-linking appends " speed" to control keys to find matching speed sensors
+- Sensor IDs have spaces removed during construction
 
 **Example:**
-- Control: `"NZXTKrakenX63/Pumpduty"` (duty control)
-- Paired:  `"NZXTKrakenX63/Pumpspeed"` (speed sensor)
+- liquidctl output: `("Pump duty", 75, "%)` → Python bridge: `key="pump"`
+- liquidctl output: `("Pump speed", 2500, "rpm")` → Python bridge: `key="pump speed"`
+- Control sensor ID: `"NZXTKrakenX63/pump"`
+- Speed sensor ID: `"NZXTKrakenX63/pumpspeed"` (spaces removed)
+- Auto-linking: `"pump"` + `" speed"` → `"pump speed"` → `"pumpspeed"` ✓
 
 #### Methods
 

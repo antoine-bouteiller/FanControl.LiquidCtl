@@ -127,17 +127,22 @@ During the `Load()` method, the plugin performs a two-pass operation:
 2. **Second Pass**: Link control sensors to their corresponding speed sensors
 
 The linking algorithm:
-- Takes the control sensor's channel key (e.g., "Pump duty")
-- Replaces "duty" with "speed" to find the corresponding sensor (e.g., "Pump speed")
-- Verifies the speed sensor exists
-- Sets the `PairedFanSensorId` property
+- The Python bridge already strips "duty" from control channel keys via `_formatString()`
+- Control channels arrive as "pump", "fan1", etc. (not "pump duty")
+- Speed channels arrive as "pump speed", "fan1 speed", etc.
+- The algorithm appends " speed" to the control key to find the matching speed sensor
+- After space removal in the sensor ID, "pump speed" becomes "pumpspeed"
+- Verifies the speed sensor exists and sets the `PairedFanSensorId` property
 
 **Example:**
 ```csharp
-// Control sensor: "NZXT Kraken X63: Pump duty"
-// Speed sensor:   "NZXT Kraken X63: Pump speed"
+// liquidctl returns: ("Pump duty", 75, "%") and ("Pump speed", 2500, "rpm")
+// Python bridge converts to: key="pump" and key="pump speed"
 //
-// Auto-linking finds and pairs these automatically
+// Control sensor ID: "NZXTKrakenX63/pump"
+// Speed sensor ID:   "NZXTKrakenX63/pumpspeed" (space removed)
+//
+// Auto-linking appends " speed" to "pump" → "pump speed" → "pumpspeed"
 controlSensor.PairedFanSensorId = speedSensor.Id;
 ```
 

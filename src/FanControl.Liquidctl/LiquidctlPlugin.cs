@@ -55,10 +55,15 @@ namespace FanControl.LiquidCtl
 			}
 
 			// Second pass: Auto-link control sensors to their corresponding speed sensors
+			// The Python bridge already strips "duty" from control channel keys via _formatString()
+			// So control channels come as "pump", "fan1", etc. (not "pump duty")
+			// Speed sensors come as "pump speed", "fan1 speed", etc.
+			// After space removal in the ID, we get "pumpspeed", "fan1speed", etc.
 			foreach (ControlSensor controlSensor in controlSensors)
 			{
-				// Try to find corresponding speed sensor by replacing "duty" with "speed" in the channel key
-				string speedChannelKey = controlSensor.Channel.Key.Replace("duty", "speed", StringComparison.OrdinalIgnoreCase);
+				// Build the expected speed sensor key by appending " speed" to the control key
+				// E.g., "pump" → "pump speed" → "pumpspeed" (after space removal)
+				string speedChannelKey = $"{controlSensor.Channel.Key} speed";
 				string potentialSpeedSensorId = $"{controlSensor.Device.Description}/{speedChannelKey}".Replace(" ", "", StringComparison.Ordinal);
 
 				// Check if this speed sensor exists
