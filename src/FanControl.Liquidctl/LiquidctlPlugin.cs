@@ -29,6 +29,9 @@ namespace FanControl.LiquidCtl
 
 			IReadOnlyCollection<DeviceStatus> detected_devices = liquidctl.GetStatuses();
 			List<string> supported_units = ["°C", "rpm", "%"];
+			List<ControlSensor> controlSensors = [];
+
+			// First pass: Create all sensors
 			foreach (DeviceStatus device in detected_devices)
 			{
 				foreach (StatusValue channel in device.Status)
@@ -38,6 +41,7 @@ namespace FanControl.LiquidCtl
 					{
 						ControlSensor sensor = new(device, channel, liquidctl);
 						sensors[sensor.Id] = sensor;
+						controlSensors.Add(sensor);
 						_container.ControlSensors.Add(sensor);
 					}
 					else
@@ -47,6 +51,20 @@ namespace FanControl.LiquidCtl
 						if (channel.Unit == "rpm") { _container.FanSensors.Add(sensor); }
 						if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 					}
+				}
+			}
+
+			// Second pass: Auto-link control sensors to their corresponding speed sensors
+			foreach (ControlSensor controlSensor in controlSensors)
+			{
+				// Try to find corresponding speed sensor by replacing "duty" with "speed" in the channel key
+				string speedChannelKey = controlSensor.Channel.Key.Replace("duty", "speed", StringComparison.OrdinalIgnoreCase);
+				string potentialSpeedSensorId = $"{controlSensor.Device.Description}/{speedChannelKey}".Replace(" ", "", StringComparison.Ordinal);
+
+				// Check if this speed sensor exists
+				if (sensors.TryGetValue(potentialSpeedSensorId, out DeviceSensor? speedSensor) && speedSensor is not ControlSensor)
+				{
+					controlSensor.PairedFanSensorId = speedSensor.Id;
 				}
 			}
 		}

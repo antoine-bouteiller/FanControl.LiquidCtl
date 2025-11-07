@@ -1,6 +1,6 @@
 # API Reference
 
-## Plugin Interface
+## Plugin Interfaces
 
 ### IPlugin3
 
@@ -25,6 +25,38 @@ public interface IPlugin
     void Close();
 }
 ```
+
+### IPluginControlSensor2
+
+Interface for control sensors with automatic pairing support.
+
+```csharp
+public interface IPluginControlSensor2 : IPluginControlSensor
+{
+    string? PairedFanSensorId { get; }
+}
+
+public interface IPluginControlSensor : IPluginSensor
+{
+    void Set(float val);
+    void Reset();
+}
+```
+
+#### Properties
+
+##### PairedFanSensorId
+```csharp
+string? PairedFanSensorId { get; }
+```
+Associates a speed (RPM) sensor with this control sensor, enabling FanControl to automatically pair the two.
+
+**Purpose:**
+- Eliminates manual sensor pairing in FanControl UI
+- Automatically links pump/fan duty controls with their RPM sensors
+- Improves user experience with zero-configuration setup
+
+**Returns:** ID of the paired fan sensor, or null if no pairing exists
 
 #### Properties
 
@@ -166,15 +198,36 @@ Updates the sensor value from device status.
 
 ### ControlSensor
 
-Extends DeviceSensor to support user-adjustable controls.
+Extends DeviceSensor to support user-adjustable controls with automatic speed sensor pairing.
 
 ```csharp
-public class ControlSensor : DeviceSensor, IPluginControlSensor
+public class ControlSensor : DeviceSensor, IPluginControlSensor2
 {
+    public string? PairedFanSensorId { get; internal set; }
     public void Set(float val);
     public void Reset();
 }
 ```
+
+#### Properties
+
+##### PairedFanSensorId
+```csharp
+string? PairedFanSensorId { get; internal set; }
+```
+ID of the automatically paired speed (RPM) sensor for this control.
+
+**Returns:** Sensor ID of the paired fan sensor, or null if no pairing was found
+
+**Auto-Linking Behavior:**
+- Automatically set during the `Load()` method
+- Links "Pump duty" controls to "Pump speed" sensors
+- Links "Fan duty" controls to "Fan speed" sensors
+- Uses intelligent pattern matching to find corresponding sensors
+
+**Example:**
+- Control: `"NZXTKrakenX63/Pumpduty"` (duty control)
+- Paired:  `"NZXTKrakenX63/Pumpspeed"` (speed sensor)
 
 #### Methods
 

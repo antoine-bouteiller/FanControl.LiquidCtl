@@ -10,6 +10,7 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Wide Device Support**: Compatible with all [liquidctl supported devices](https://github.com/liquidctl/liquidctl#supported-devices)
 - **Seamless Integration**: Works natively with FanControl's interface using IPlugin3
 - **Error Recovery**: Automatic refresh and recovery from communication errors
+- **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors using IPluginControlSensor2
 
 ## Tested Devices
 
@@ -120,10 +121,11 @@ poetry build
 
 ### Plugin Architecture
 
-This plugin implements the **IPlugin3** interface, which provides:
-- Standard lifecycle methods (Initialize, Load, Update, Close)
-- Event-based refresh mechanism for error recovery
-- Integration with FanControl's sensor and control system
+This plugin implements the latest FanControl plugin interfaces:
+- **IPlugin3**: Provides standard lifecycle methods and event-based refresh mechanism for error recovery
+- **IPluginControlSensor2**: Enables automatic pairing of control sensors (pump/fan duty) with their corresponding speed sensors (RPM)
+
+This means when you add a pump duty control, FanControl automatically knows which pump speed sensor to pair it with, eliminating manual configuration.
 
 For technical details about the plugin implementation, architecture, and communication protocol, see [DEVELOPMENT.md](DEVELOPMENT.md).
 

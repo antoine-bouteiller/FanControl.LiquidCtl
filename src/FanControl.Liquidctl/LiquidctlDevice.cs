@@ -54,10 +54,17 @@ namespace FanControl.LiquidCtl
 		}
 	}
 
-	public class ControlSensor : DeviceSensor, IPluginControlSensor
+	public class ControlSensor : DeviceSensor, IPluginControlSensor2
 	{
 		internal float? Initial { get; }
 		private readonly LiquidctlBridgeWrapper liquidctl;
+
+		/// <summary>
+		/// ID of the paired RPM sensor for auto-linking in FanControl.
+		/// Returns null if no corresponding speed sensor is found.
+		/// </summary>
+		public string? PairedFanSensorId { get; internal set; }
+
 		internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
 			base(device, channel)
 		{

@@ -69,6 +69,13 @@ IPlugin2 : IPlugin
 
 IPlugin3 : IPlugin2
 └── event EventHandler? RefreshRequested
+
+IPluginControlSensor : IPluginSensor
+├── void Set(float val)
+└── void Reset()
+
+IPluginControlSensor2 : IPluginControlSensor
+└── string? PairedFanSensorId { get; }
 ```
 
 #### RefreshRequested Event
@@ -89,6 +96,51 @@ try {
 }
 ```
 
+### IPluginControlSensor2 Interface
+
+Control sensors in this plugin implement `IPluginControlSensor2`, which adds automatic sensor pairing capabilities.
+
+#### PairedFanSensorId Property
+
+This property enables automatic linking between control sensors (duty cycle) and their corresponding speed sensors (RPM).
+
+**Benefits:**
+- Eliminates manual pairing in FanControl UI
+- Automatically associates pump duty controls with pump speed sensors
+- Automatically associates fan duty controls with fan speed sensors
+- Improves user experience with zero-configuration setup
+
+**Implementation:**
+```csharp
+public class ControlSensor : DeviceSensor, IPluginControlSensor2
+{
+    public string? PairedFanSensorId { get; internal set; }
+    // ...
+}
+```
+
+**Auto-Linking Logic:**
+
+During the `Load()` method, the plugin performs a two-pass operation:
+
+1. **First Pass**: Create all sensors (temperature, speed, and control)
+2. **Second Pass**: Link control sensors to their corresponding speed sensors
+
+The linking algorithm:
+- Takes the control sensor's channel key (e.g., "Pump duty")
+- Replaces "duty" with "speed" to find the corresponding sensor (e.g., "Pump speed")
+- Verifies the speed sensor exists
+- Sets the `PairedFanSensorId` property
+
+**Example:**
+```csharp
+// Control sensor: "NZXT Kraken X63: Pump duty"
+// Speed sensor:   "NZXT Kraken X63: Pump speed"
+//
+// Auto-linking finds and pairs these automatically
+controlSensor.PairedFanSensorId = speedSensor.Id;
+```
+
 ### Lifecycle Methods
 
 #### Initialize()
@@ -103,6 +155,11 @@ Called after Initialize(). Use this to:
 - Create sensor objects for each device channel
 - Register sensors with FanControl via the container
 - Set up control sensors for pump/fan speed adjustment
+- Auto-link control sensors with their corresponding speed sensors
+
+The method uses a two-pass approach:
+1. **First Pass**: Create and register all sensors
+2. **Second Pass**: Establish automatic links between control and speed sensors
 
 #### Update()
 Called periodically by FanControl (typically every second). Use this to:
