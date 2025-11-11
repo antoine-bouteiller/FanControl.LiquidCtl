@@ -1,5 +1,8 @@
 using FanControl.Plugins;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+
+[assembly: InternalsVisibleTo("FanControl.Liquidctl.Tests")]
 
 namespace FanControl.LiquidCtl
 {
@@ -45,9 +48,9 @@ namespace FanControl.LiquidCtl
 			Channel = status;
 		}
 
-		internal DeviceStatus Device { get; }
-		internal StatusValue Channel { get; set; }
-		internal DeviceSensor(DeviceStatus device, StatusValue channel)
+		public DeviceStatus Device { get; }
+		public StatusValue Channel { get; set; }
+		public DeviceSensor(DeviceStatus device, StatusValue channel)
 		{
 			Device = device;
 			Channel = channel;
@@ -56,16 +59,16 @@ namespace FanControl.LiquidCtl
 
 	public class ControlSensor : DeviceSensor, IPluginControlSensor2
 	{
-		internal float? Initial { get; }
+		public float? Initial { get; }
 		private readonly LiquidctlBridgeWrapper liquidctl;
 
 		/// <summary>
 		/// ID of the paired RPM sensor for auto-linking in FanControl.
 		/// Returns null if no corresponding speed sensor is found.
 		/// </summary>
-		public string? PairedFanSensorId { get; internal set; }
+		public string? PairedFanSensorId { get; set; }
 
-		internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
+		public ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
 			base(device, channel)
 		{
 			Initial = Value;
