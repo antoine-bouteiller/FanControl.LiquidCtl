@@ -1,5 +1,8 @@
 using FanControl.Plugins;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+
+[assembly: InternalsVisibleTo("FanControl.Liquidctl.Tests")]
 
 namespace FanControl.LiquidCtl
 {
