@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-14)
+
+
+### Features
+
+* update FanControl plugin to use IPlugin3 interface ([#12](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/12)) ([d9417a0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/d9417a0e183caa7f1d6535ec84c96268891fecad))
+
 ## [1.0.3](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.2...v1.0.3) (2025-10-23)
 
 
