@@ -28,7 +28,6 @@ namespace FanControl.LiquidCtl
 			IReadOnlyCollection<DeviceStatus> detected_devices = liquidctl.GetStatuses();
 			List<string> supported_units = ["°C", "rpm", "%"];
 
-			// Create all sensors
 			foreach (DeviceStatus device in detected_devices)
 			{
 				foreach (StatusValue channel in device.Status)
@@ -50,21 +49,13 @@ namespace FanControl.LiquidCtl
 				}
 			}
 
-			// Auto-link control sensors to their corresponding speed sensors
-			// The Python bridge already strips "duty" from control channel keys via _formatString()
-			// So control channels come as "pump", "fan1", etc. (not "pump duty")
-			// Speed sensors come as "pump speed", "fan1 speed", etc.
-			// After space removal in the ID, we get "pumpspeed", "fan1speed", etc.
 			foreach (DeviceSensor sensor in sensors.Values)
 			{
 				if (sensor is not ControlSensor controlSensor) { continue; }
 
-				// Build the expected speed sensor key by appending " speed" to the control key
-				// E.g., "pump" → "pump speed" → "pumpspeed" (after space removal)
 				string speedChannelKey = $"{controlSensor.Channel.Key} speed";
 				string potentialSpeedSensorId = $"{controlSensor.Device.Description}/{speedChannelKey}".Replace(" ", "", StringComparison.Ordinal);
 
-				// Check if this speed sensor exists
 				if (sensors.TryGetValue(potentialSpeedSensorId, out DeviceSensor? speedSensor) && speedSensor is not ControlSensor)
 				{
 					controlSensor.PairedFanSensorId = speedSensor.Id;
