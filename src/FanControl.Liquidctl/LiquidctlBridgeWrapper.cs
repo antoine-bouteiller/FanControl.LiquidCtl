@@ -50,6 +50,11 @@ namespace FanControl.LiquidCtl
             {
                 if (bridgeProcess == null || bridgeProcess.HasExited)
                 {
+                    if (!File.Exists(liquidctlexe))
+                    {
+                        throw new FileNotFoundException($"Liquidctl bridge executable not found at: {liquidctlexe}");
+                    }
+
                     bridgeProcess = new Process
                     {
                         StartInfo = new ProcessStartInfo
@@ -63,13 +68,25 @@ namespace FanControl.LiquidCtl
                         }
                     };
 
-                    _ = bridgeProcess.Start();
+                    bool started = bridgeProcess.Start();
+                    if (!started)
+                    {
+                        throw new InvalidOperationException("Failed to start liquidctl bridge process");
+                    }
+
+                    logger.Log($"Started liquidctl bridge process (PID: {bridgeProcess.Id})");
 
                     // Read streams asynchronously to avoid deadlock
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardOutput, isError: false));
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardError, isError: true));
 
                     Thread.Sleep(2000);
+
+                    // Verify process is still running after initialization delay
+                    if (bridgeProcess.HasExited)
+                    {
+                        throw new InvalidOperationException($"Liquidctl bridge process exited immediately with code: {bridgeProcess.ExitCode}");
+                    }
                 }
             }
         }
@@ -137,7 +154,7 @@ namespace FanControl.LiquidCtl
                     {
                         _pipeClient?.Dispose();
                         _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
-                        _pipeClient.Connect(5000);
+                        _pipeClient.Connect(30000);
                     }
                     catch (Exception ex)
                     {
