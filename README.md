@@ -8,9 +8,9 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Pump Control**: Adjust pump speeds with precise duty cycle control
 - **Fan Control**: Monitor and control fan speeds on supported devices
 - **Wide Device Support**: Compatible with all [liquidctl supported devices](https://github.com/liquidctl/liquidctl#supported-devices)
-- **Seamless Integration**: Works natively with FanControl's interface using IPlugin3
+- **Seamless Integration**: Works natively with FanControl's interface
 - **Error Recovery**: Automatic refresh and recovery from communication errors
-- **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors using IPluginControlSensor2
+- **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors
 
 ## Tested Devices
 
@@ -33,22 +33,6 @@ _Note: Should work with any liquidctl-supported device, but these are the ones w
 3. Restart FanControl
 4. Your liquidctl devices should appear automatically in the sensors and controls lists
 
-## Architecture
-
-The plugin consists of two main components:
-
-### 1. .NET Plugin (`FanControl.Liquidctl`)
-
-- Integrates with FanControl's plugin system
-- Manages device discovery and sensor/control registration
-- Handles communication with the Python bridge
-
-### 2. Python Bridge (`liquidctl_bridge`)
-
-- Standalone Python executable that wraps liquidctl functionality
-- Communicates via Named Pipes for reliable IPC
-- Handles all low-level device communication
-
 ## Usage
 
 Once installed, the plugin automatically:
@@ -69,6 +53,11 @@ Once installed, the plugin automatically:
 - **Pump Duty**: Adjust pump speed (percentage-based)
 - **Fan Control**: Control fan speeds (where supported)
 
+## Screenshots
+
+![Fluid temperature sensor](/docs/images/FluidTemp.png)
+![Pump speed and control](/docs/images/PumpControl.png)
+
 ## Troubleshooting
 
 ### Plugin Not Loading
@@ -76,6 +65,7 @@ Once installed, the plugin automatically:
 - Ensure all files are extracted to the correct Plugins directory
 - Check that your AIO is properly connected and recognized by Windows
 - Restart FanControl after installation
+- Verify .NET 8 runtime is available
 
 ### No Devices Detected
 
@@ -89,18 +79,21 @@ Once installed, the plugin automatically:
 - If issues persist, try restarting FanControl
 - Check FanControl logs for detailed error messages
 
-## Development
+## Architecture
 
-For detailed development documentation, see [DEVELOPMENT.md](DEVELOPMENT.md).
+The plugin consists of two main components:
+
+1. **.NET Plugin** - Integrates with FanControl's plugin system
+2. **Python Bridge** - Wraps liquidctl functionality and communicates via Named Pipes
+
+## Development
 
 ### Prerequisites
 
 - .NET 8 SDK
 - Python 3.8+ with Poetry
 
-### Quick Start
-
-#### Building the Plugin
+### Building
 
 ```bash
 # Build C# plugin
@@ -111,25 +104,31 @@ dotnet build
 cd src/Liquidctl.Bridge
 poetry install
 poetry build
-```
 
-#### Creating a Release
-
-```powershell
+# Complete release build
 .\build.ps1
 ```
 
-### Plugin Architecture
+### Repository Structure
 
-This plugin implements the latest FanControl plugin interfaces:
-- **IPlugin3**: Provides standard lifecycle methods and event-based refresh mechanism for error recovery
-- **IPluginControlSensor2**: Enables automatic pairing of control sensors (pump/fan duty) with their corresponding speed sensors (RPM)
+```
+FanControl.LiquidCtl/
+├── src/
+│   ├── FanControl.Liquidctl/    # C# Plugin
+│   └── Liquidctl.Bridge/        # Python Bridge
+├── docs/                        # Documentation & images
+└── build.ps1                    # Build script
+```
 
-This means when you add a pump duty control, FanControl automatically knows which pump speed sensor to pair it with, eliminating manual configuration.
+## Contributing
 
-For technical details about the plugin implementation, architecture, and communication protocol, see [DEVELOPMENT.md](DEVELOPMENT.md).
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with clear commits
+4. Add tests for new functionality
+5. Submit pull request with description
 
-## Screenshots
+## References
 
-![Fluid temperature sensor](/docs/images/FluidTemp.png)
-![Pump speed and control](/docs/images/PumpControl.png)
+- [FanControl Plugin Documentation](https://github.com/Rem0o/FanControl.Releases/wiki/Plugins)
+- [liquidctl Documentation](https://github.com/liquidctl/liquidctl)
