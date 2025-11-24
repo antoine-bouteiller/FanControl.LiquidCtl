@@ -55,7 +55,7 @@ class LiquidctlService:
                 lc_device.initialize()
             device_names = [device.description for device in found_devices]
             logger.info(f"Devices found: {device_names}")
-        except ValueError as ve:  # ValueError can happen when no devices were found
+        except ValueError as ve:
             logger.debug("ValueError when trying to find all devices", exc_info=ve)
             logger.info("No Liquidctl devices detected")
         except Exception as e:

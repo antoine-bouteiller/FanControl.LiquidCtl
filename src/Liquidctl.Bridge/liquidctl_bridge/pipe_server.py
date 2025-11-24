@@ -147,17 +147,20 @@ class Server(Base):
         self.close_connection()
 
     def serverentry(self) -> None:
+        logger.info(f"Starting Named Pipe server thread for pipe: {self.name}")
         while not self.shutdown:
             if self.handle is not None and (not self.alive and not self.canread()):
                 self.close_connection()
 
             if self.handle is None:
                 pipe_name = f"\\\\.\\pipe\\{self.name}".encode("utf-8")
+                logger.debug(f"Creating Named Pipe: {pipe_name.decode('utf-8')}")
+
                 nph = kernel32.CreateNamedPipeA(
                     pipe_name,
                     PIPE_ACCESS_DUPLEX,
                     PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
-                    1,  # Only 1 client allowed
+                    1,
                     MAX_MESSAGE_SIZE,
                     MAX_MESSAGE_SIZE,
                     TIMEOUT,
@@ -167,18 +170,28 @@ class Server(Base):
                 pipe_error: int = kernel32.GetLastError()
 
                 if pipe_error == ERROR_PIPE_BUSY:
+                    logger.warning("Named Pipe is busy, retrying...")
                     time.sleep(2)
                     continue
 
+                if nph == -1:
+                    logger.error(f"Failed to create Named Pipe. Error code: {pipe_error}")
+                    time.sleep(2)
+                    continue
+
+                logger.info("Named Pipe created, waiting for client connection...")
                 ret: bool = kernel32.ConnectNamedPipe(
                     ctypes.c_uint(nph), ctypes.c_uint(0)
                 )
 
                 if not ret:
+                    error_code = kernel32.GetLastError()
+                    logger.warning(f"Failed to connect to client. Error code: {error_code}")
                     kernel32.CloseHandle(ctypes_handle(nph))
                     continue
 
                 self.handle = nph
                 self.alive = True
+                logger.info("Client connected to Named Pipe")
             else:
                 time.sleep(0.2)
