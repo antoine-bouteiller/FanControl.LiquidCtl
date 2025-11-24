@@ -1,5 +1,8 @@
 using FanControl.Plugins;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+
+[assembly: InternalsVisibleTo("FanControl.Liquidctl.Tests")]
 
 namespace FanControl.LiquidCtl
 {
@@ -40,14 +43,14 @@ namespace FanControl.LiquidCtl
 		public float? Value => (float?)Channel.Value;
 
 		public void Update() { }
-		internal void Update(StatusValue status)
+		public void Update(StatusValue status)
 		{
 			Channel = status;
 		}
 
-		internal DeviceStatus Device { get; }
-		internal StatusValue Channel { get; set; }
-		internal DeviceSensor(DeviceStatus device, StatusValue channel)
+		public DeviceStatus Device { get; }
+		public StatusValue Channel { get; set; }
+		public DeviceSensor(DeviceStatus device, StatusValue channel)
 		{
 			Device = device;
 			Channel = channel;
@@ -56,12 +59,12 @@ namespace FanControl.LiquidCtl
 
 	public class ControlSensor : DeviceSensor, IPluginControlSensor2
 	{
-		internal float? Initial { get; }
+		public float? Initial { get; }
 		private readonly LiquidctlBridgeWrapper liquidctl;
 
-		public string? PairedFanSensorId { get; internal set; }
+		public string? PairedFanSensorId { get; set; }
 
-		internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
+		public ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
 			base(device, channel)
 		{
 			Initial = Value;

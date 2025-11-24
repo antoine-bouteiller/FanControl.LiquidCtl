@@ -35,6 +35,16 @@ jobs:
           }
           Write-Host "✅ .NET build successful!" -ForegroundColor Green
 
+      - name: Run .NET Tests
+        run: |
+          Set-Location .\src\FanControl.Liquidctl.Tests
+          dotnet test --configuration Debug --logger "console;verbosity=detailed"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ .NET tests failed!" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "✅ .NET tests passed!" -ForegroundColor Green
+
       - name: Install Python Dependencies
         run: |
           Set-Location .\src\Liquidctl.Bridge
@@ -44,6 +54,16 @@ jobs:
             exit 1
           }
           Write-Host "✅ Python dependencies installed!" -ForegroundColor Green
+
+      - name: Run Python Tests
+        run: |
+          Set-Location .\src\Liquidctl.Bridge
+          poetry run pytest tests/ -v --tb=short
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ Python tests failed!" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "✅ Python tests passed!" -ForegroundColor Green
 
       - name: Build Python Bridge
         run: |

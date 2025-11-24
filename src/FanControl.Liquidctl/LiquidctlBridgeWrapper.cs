@@ -200,7 +200,7 @@ namespace FanControl.LiquidCtl
             }
         }
 
-        public IReadOnlyCollection<DeviceStatus> GetStatuses()
+        public virtual IReadOnlyCollection<DeviceStatus> GetStatuses()
         {
             PipeRequest request = new()
             {
@@ -224,7 +224,7 @@ namespace FanControl.LiquidCtl
             }
         }
 
-        public void SetFixedSpeed(FixedSpeedRequest requestData)
+        public virtual void SetFixedSpeed(FixedSpeedRequest requestData)
         {
             PipeRequest request = new()
             {
