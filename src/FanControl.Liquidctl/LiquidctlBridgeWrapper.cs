@@ -74,13 +74,11 @@ namespace FanControl.LiquidCtl
                         throw new InvalidOperationException("Failed to start liquidctl bridge process");
                     }
 
-                    // Read streams asynchronously to avoid deadlock
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardOutput, isError: false));
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardError, isError: true));
 
                     Thread.Sleep(2000);
 
-                    // Verify process is still running after initialization delay
                     if (bridgeProcess.HasExited)
                     {
                         throw new InvalidOperationException($"Liquidctl bridge process exited immediately with code: {bridgeProcess.ExitCode}");
@@ -104,7 +102,6 @@ namespace FanControl.LiquidCtl
             }
             catch (OperationCanceledException)
             {
-                // Expected when stream is disposed
             }
         }
 

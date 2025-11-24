@@ -160,7 +160,7 @@ class Server(Base):
                     pipe_name,
                     PIPE_ACCESS_DUPLEX,
                     PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
-                    1,  # Only 1 client allowed
+                    1,
                     MAX_MESSAGE_SIZE,
                     MAX_MESSAGE_SIZE,
                     TIMEOUT,
