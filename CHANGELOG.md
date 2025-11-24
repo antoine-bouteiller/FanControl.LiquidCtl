@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
+
+
+### Features
+
+* update FanControl plugin to use IPlugin3 interface ([#12](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/12)) ([d9417a0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/d9417a0e183caa7f1d6535ec84c96268891fecad))
+
+
+### Bug Fixes
+
+* named pipe connection timeout error ([#32](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/32)) ([6b3c0a2](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/6b3c0a218e6cded0930e3cad6e66d54aa3be8ae5))
+
 ## [1.0.3](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.2...v1.0.3) (2025-10-23)
 
 
