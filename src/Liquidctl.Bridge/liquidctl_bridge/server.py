@@ -61,18 +61,22 @@ def main():
         help="Logging level (default: INFO)",
     )
     args = parser.parse_args()
-    
+
     setup_logging(args.log_level)
     logger = logging.getLogger(__name__)
-    
-    with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
-        logger.info("Started Liquidctl Bridge Server")
-        liquidctl_service.initialize_all()
-        while True:
-            if pipe.alive:
-                handle_pipe_message(liquidctl_service, pipe)
-            else:
-                time.sleep(0.2)
+
+    try:
+        with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
+            logger.info("Started Liquidctl Bridge Server")
+            liquidctl_service.initialize_all()
+            while True:
+                if pipe.alive:
+                    handle_pipe_message(liquidctl_service, pipe)
+                else:
+                    time.sleep(0.2)
+    except Exception as e:
+        logger.error(f"Fatal error in bridge server: {e}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
