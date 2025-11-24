@@ -6,7 +6,7 @@ authors = [{ name = "Antoine Bouteiller" }]
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "liquidctl (>=1.15.0,<2.0.0)",
-    "pywin32 (>=310,<311)",
+    "pywin32 (>=311,<312)",
     "msgspec (>=0.20.0,<0.21.0)",
 ]
 
