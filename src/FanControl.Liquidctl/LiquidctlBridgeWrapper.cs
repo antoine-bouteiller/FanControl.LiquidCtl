@@ -74,8 +74,6 @@ namespace FanControl.LiquidCtl
                         throw new InvalidOperationException("Failed to start liquidctl bridge process");
                     }
 
-                    logger.Log($"Started liquidctl bridge process (PID: {bridgeProcess.Id})");
-
                     // Read streams asynchronously to avoid deadlock
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardOutput, isError: false));
                     _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardError, isError: true));
