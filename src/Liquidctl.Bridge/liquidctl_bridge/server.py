@@ -68,15 +68,7 @@ def main():
     try:
         with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
             logger.info("Started Liquidctl Bridge Server")
-
-            # Give pipe server thread time to create the named pipe
-            time.sleep(0.5)
-
-            # Initialize devices after pipe is ready for connections
-            logger.info("Initializing liquidctl devices...")
             liquidctl_service.initialize_all()
-            logger.info("Device initialization complete")
-
             while True:
                 if pipe.alive:
                     handle_pipe_message(liquidctl_service, pipe)
