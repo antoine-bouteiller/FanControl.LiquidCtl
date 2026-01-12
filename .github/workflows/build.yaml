@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  workflow_call:
+    outputs:
+      artifact-name:
+        description: "Name of the uploaded artifact"
+        value: ${{ jobs.build.outputs.artifact-name }}
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
+    steps:
+      - name: Set Artifact Name
+        id: set-artifact-name
+        run: |
+          if ("${{ github.event.pull_request.number }}" -ne "") {
+            $artifactName = "FanControl.Liquidctl-PR-${{ github.event.pull_request.number }}"
+          } else {
+            $artifactName = "FanControl.Liquidctl-Build-${{ github.run_number }}"
+          }
+          echo "artifact-name=$artifactName" >> $env:GITHUB_OUTPUT
+          Write-Host "Artifact name: $artifactName" -ForegroundColor Green
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v4
+
+      - name: Build .NET Plugin
+        run: |
+          Set-Location .\src\FanControl.Liquidctl
+          dotnet build
+
+      - name: Build Python Bridge
+        run: |
+          Set-Location .\src\Liquidctl.Bridge
+          poetry install
+          poetry run pyinstaller --onefile ".\liquidctl_bridge\server.py" -n liquidctl_bridge --clean
+
+      - name: Create Artifact Archive
+        run: |
+          $compress = @{
+            Path            = ".\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll", ".\src\Liquidctl.Bridge\dist\liquidctl_bridge.exe"
+            DestinationPath = ".\FanControl.Liquidctl.zip"
+          }
+          Compress-Archive @compress
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.set-artifact-name.outputs.artifact-name }}
+          path: FanControl.Liquidctl.zip
+          retention-days: 30
