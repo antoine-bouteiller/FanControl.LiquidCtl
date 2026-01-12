@@ -129,7 +129,7 @@ class LiquidctlService:
                     unit=str(status[2]),
                 )
                 for status in statuses
-                if "control mode" not in status[0]
+                if isinstance(status[1], float)
             ]
             if statuses is not None
             else []

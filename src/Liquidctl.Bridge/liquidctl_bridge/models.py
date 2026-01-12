@@ -1,6 +1,7 @@
-from typing import List, Optional
-import msgspec
 from enum import Enum, IntEnum
+from typing import List, Optional
+
+import msgspec
 
 
 class StatusValue(msgspec.Struct):
