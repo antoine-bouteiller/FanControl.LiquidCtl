@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v1.2.0) (2026-01-15)
+
+
+### 🎉 New Features
+
+* replace poetry with uv ([5f4444d](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/5f4444d194860a41b7a2a7e0e06ae2570869ff1b))
+
 ## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
 
 
