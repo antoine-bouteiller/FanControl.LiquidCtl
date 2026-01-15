@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v1.1.1) (2026-01-15)
+
+
+### 📦 Dependency Updates
+
+* update github artifact actions ([#53](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/53)) ([6d8a4e5](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/6d8a4e5a7dd35da8c1306d6ee080f1af20aecd02))
+* update python to v3.14.2 ([#52](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/52)) ([58dbf57](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/58dbf57a54ae7efd0731cde6eaa7f15f898d0f0b))
+
 ## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
 
 
