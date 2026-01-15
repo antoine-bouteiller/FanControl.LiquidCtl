@@ -40,7 +40,7 @@ class LiquidctlService:
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.shutdown()
         if exc_value is not None:
-            logger.error(exc_value, traceback)
+            logger.error(f"Exception during service context: {exc_value}", exc_info=True)
 
     def initialize_all(self) -> None:
         try:

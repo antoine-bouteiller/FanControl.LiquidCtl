@@ -1,9 +1,8 @@
-from typing import List
-from tests.test_client import TestClient
-from liquidctl_bridge.models import DeviceStatus, FixedSpeedRequest, SpeedKwargs
-import msgspec
 import logging
 import sys
+
+from liquidctl_bridge.models import FixedSpeedRequest, MessageStatus, SpeedKwargs
+from tests.test_client import TestClient
 
 pipe_name = "LiquidCtlPipe"
 
@@ -19,14 +18,13 @@ logger = logging.getLogger(__name__)
 
 def main():
     with TestClient(pipe_name) as client:
-        client.sendRequest("initialize")
 
         res = client.sendRequest("get.statuses")
         logger.info(res)
-        if res is not None:
-            res = msgspec.json.decode(res, type=List[DeviceStatus])
-            logger.info(res)
-            for device in res:
+        if res is not None and res.status == MessageStatus.SUCCESS:
+            devices = res.data
+            logger.info(devices)
+            for device in devices:
                 logger.info(device)
                 status = next(status for status in device.status if status.unit == "%")
                 client.sendRequest(
@@ -37,7 +35,7 @@ def main():
                     ),
                 )
         else:
-            raise Exception("No response")
+            raise Exception(f"Request failed: {res.error if res else 'No response'}")
 
 
 if __name__ == "__main__":
