@@ -1,121 +1,159 @@
 import ctypes
 import logging
-import sys
 import threading
 import time
-from typing import (
-    Optional,
-    Union,
-)
+from ctypes import wintypes
+from typing import Optional
 from liquidctl_bridge.models import Mode, PipeError
 
+# --- Win32 API Definitions ---
+KERNEL32 = ctypes.windll.kernel32
 
 PIPE_ACCESS_DUPLEX = 0x00000003
 PIPE_TYPE_MESSAGE = 0x00000004
 PIPE_READMODE_MESSAGE = 0x00000002
-ERROR_PIPE_BUSY = 231
-MAX_MESSAGE_SIZE = 4096
-TIMEOUT = 100
+PIPE_WAIT = 0x00000000
+PIPE_UNLIMITED_INSTANCES = 255
 
-try:
-    kernel32 = ctypes.windll.kernel32
-except AttributeError:
-    raise RuntimeError("This module requires Windows OS")
+# Win32 Error Codes
+ERROR_PIPE_BUSY = 231
+ERROR_PIPE_CONNECTED = 535
+ERROR_BROKEN_PIPE = 109
+INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
+
+# Define argument/return types to prevent ctypes guessing errors
+KERNEL32.CreateNamedPipeW.argtypes = [
+    wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+    wintypes.DWORD, wintypes.DWORD, wintypes.DWORD,
+    wintypes.DWORD, wintypes.LPVOID
+]
+KERNEL32.CreateNamedPipeW.restype = wintypes.HANDLE
+
+KERNEL32.ConnectNamedPipe.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
+KERNEL32.ConnectNamedPipe.restype = wintypes.BOOL
+
+KERNEL32.ReadFile.argtypes = [
+    wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+]
+KERNEL32.ReadFile.restype = wintypes.BOOL
+
+KERNEL32.WriteFile.argtypes = [
+    wintypes.HANDLE, wintypes.LPCVOID, wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+]
+KERNEL32.WriteFile.restype = wintypes.BOOL
+
+KERNEL32.PeekNamedPipe.argtypes = [
+    wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD),
+    ctypes.POINTER(wintypes.DWORD)
+]
+KERNEL32.PeekNamedPipe.restype = wintypes.BOOL
+
+KERNEL32.CloseHandle.argtypes = [wintypes.HANDLE]
+KERNEL32.CloseHandle.restype = wintypes.BOOL
 
 logger = logging.getLogger(__name__)
-
-
-def ctypes_handle(handle: int) -> Union[ctypes.c_uint, ctypes.c_ulonglong]:
-    if sys.maxsize > 2**32:
-        return ctypes.c_ulonglong(handle)
-    else:
-        return ctypes.c_uint(handle)
 
 
 class Base:
     def __init__(self, mode: int = Mode.SLAVE):
         self.mode = mode
-        self.alive = False
         self.handle: Optional[int] = None
+        self._io_lock = threading.Lock()
 
-    def read(self) -> Optional[bytes]:
-        if not self.alive or not self.handle:
-            return
-
-        while not self.canread():
-            time.sleep(0.2)
-
-        buf = ctypes.create_string_buffer(4096)
-        cnt_buffer = ctypes.c_uint(0)
-
-        ret: bool = kernel32.ReadFile(
-            ctypes_handle(self.handle),
-            buf,
-            4096,
-            ctypes.byref(cnt_buffer),
-            None,
-        )
-
-        if ret == 0:
-            self.alive = False
-            return
-
-        cnt = cnt_buffer.value
-        if cnt > 0:
-            rawmsg: bytes = bytes(buf[:cnt])
-            return rawmsg
+    @property
+    def alive(self) -> bool:
+        return self.handle is not None and self.handle != INVALID_HANDLE_VALUE
 
     def canread(self) -> bool:
-        if not self.alive or not self.handle:
+        if not self.alive:
             return False
 
-        total_bytes_available = ctypes.c_uint(0)
-        bytes_left_this_message = ctypes.c_uint(0)
+        avail_bytes = wintypes.DWORD(0)
 
-        ret: int = kernel32.PeekNamedPipe(
-            ctypes_handle(self.handle),
-            None,
-            0,
-            None,
-            ctypes.byref(total_bytes_available),
-            ctypes.byref(bytes_left_this_message),
-        )
+        with self._io_lock:
+            if not self.alive:
+                return False
+            success = KERNEL32.PeekNamedPipe(
+                self.handle, None, 0, None,
+                ctypes.byref(avail_bytes), None
+            )
 
-        if ret == 0:
-            self.alive = False
+        if not success:
+            # If Peek fails, the pipe is likely broken/closed
             return False
 
-        return total_bytes_available.value > 0
+        return avail_bytes.value > 0
+
+    def read(self) -> Optional[bytes]:
+        """Reads data if available. Returns None if no data or pipe dead."""
+        if not self.canread():
+            return None
+
+        avail_bytes = wintypes.DWORD(0)
+
+        with self._io_lock:
+            if not self.alive:
+                return None
+
+            # Peek again to get exact size
+            KERNEL32.PeekNamedPipe(
+                self.handle, None, 0, None,
+                ctypes.byref(avail_bytes), None
+            )
+
+            if avail_bytes.value == 0:
+                return None
+
+            buffer = ctypes.create_string_buffer(avail_bytes.value)
+            read_bytes = wintypes.DWORD(0)
+
+            success = KERNEL32.ReadFile(
+                self.handle,
+                buffer,
+                len(buffer),
+                ctypes.byref(read_bytes),
+                None
+            )
+
+            if not success:
+                return None
+
+            return buffer.raw[:read_bytes.value]
 
     def write(self, message: bytes) -> bool:
-        if not self.alive or not self.handle:
+        if not self.alive:
             raise PipeError("Pipe is dead!")
 
-        written = ctypes.c_uint(0)
+        written = wintypes.DWORD(0)
 
-        ret: bool = kernel32.WriteFile(
-            ctypes_handle(self.handle),
-            message,
-            len(message),
-            ctypes.byref(written),
-            None,
-        )
-        if ret == 0:
-            self.alive = False
+        with self._io_lock:
+            if not self.alive:
+                raise PipeError("Pipe is dead!")
+
+            success = KERNEL32.WriteFile(
+                self.handle,
+                message,
+                len(message),
+                ctypes.byref(written),
+                None
+            )
+
+        if not success:
+            return False
 
         return True
 
 
 class Server(Base):
-    def __init__(
-        self,
-        name: str,
-    ) -> None:
+    def __init__(self, name: str) -> None:
         super().__init__(Mode.SLAVE)
         self.name = name
-        self.shutdown = False
-        self.hasdata = False
+        self.pipe_path = f"\\\\.\\pipe\\{self.name}"
 
+        self.shutdown_event = threading.Event()
         self.server_thread = threading.Thread(target=self.serverentry, daemon=True)
         self.server_thread.start()
 
@@ -126,72 +164,68 @@ class Server(Base):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is KeyboardInterrupt:
             logger.info("KeyboardInterrupt detected, cleaning up Server...")
-        elif exc_value is not None:
-            logger.error(exc_value, traceback)
-
-        try:
-            self.close()
-        except Exception as e:
-            logger.error(f"Error during Server cleanup: {e}")
-
-        return True
+        elif exc_value:
+            logger.error(f"Error: {exc_value}", exc_info=traceback)
+        self.close()
+        return False  # Propagate exceptions if any
 
     def close_connection(self) -> None:
-        if self.handle is not None:
-            kernel32.CloseHandle(ctypes_handle(self.handle))
-            self.handle = None
-        self.alive = False
+        """Safely closes the underlying Win32 handle."""
+        with self._io_lock:
+            if self.handle:
+                KERNEL32.CloseHandle(self.handle)
+                self.handle = None
 
     def close(self) -> None:
-        self.shutdown = True
+        """Signal shutdown and cleanup."""
+        self.shutdown_event.set()
         self.close_connection()
+        if self.server_thread.is_alive():
+            self.server_thread.join(timeout=1.0)
 
     def serverentry(self) -> None:
-        logger.info(f"Starting Named Pipe server thread for pipe: {self.name}")
-        while not self.shutdown:
-            if self.handle is not None and (not self.alive and not self.canread()):
+        logger.info(f"Starting Named Pipe server thread for: {self.name}")
+
+        while not self.shutdown_event.is_set():
+            nph = KERNEL32.CreateNamedPipeW(
+                self.pipe_path,
+                PIPE_ACCESS_DUPLEX,
+                PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+                PIPE_UNLIMITED_INSTANCES,
+                65536,  # Out buffer
+                65536,  # In buffer
+                0,      # Default timeout
+                None
+            )
+
+            if nph == INVALID_HANDLE_VALUE:
+                logger.error(f"Failed CreateNamedPipe. Err: {KERNEL32.GetLastError()}")
+                time.sleep(2)
+                continue
+
+            logger.debug("Waiting for client connection...")
+            connected = KERNEL32.ConnectNamedPipe(nph, None)
+
+            if not connected and KERNEL32.GetLastError() == ERROR_PIPE_CONNECTED:
+                connected = True
+
+            if connected or KERNEL32.GetLastError() == ERROR_PIPE_BUSY:
+                logger.info("Client connected")
+
+                with self._io_lock:
+                    self.handle = nph
+
+                while not self.shutdown_event.is_set():
+                    if not self.canread():
+                        if KERNEL32.GetLastError() == ERROR_BROKEN_PIPE:
+                             break
+
+                        time.sleep(0.1)
+                    else:
+                        time.sleep(0.1)
+
+                logger.info("Client disconnected or shutdown triggered.")
                 self.close_connection()
-
-            if self.handle is None:
-                pipe_name = f"\\\\.\\pipe\\{self.name}".encode("utf-8")
-                logger.debug(f"Creating Named Pipe: {pipe_name.decode('utf-8')}")
-
-                nph = kernel32.CreateNamedPipeA(
-                    pipe_name,
-                    PIPE_ACCESS_DUPLEX,
-                    PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
-                    1,
-                    MAX_MESSAGE_SIZE,
-                    MAX_MESSAGE_SIZE,
-                    TIMEOUT,
-                    None,
-                )
-
-                pipe_error: int = kernel32.GetLastError()
-
-                if pipe_error == ERROR_PIPE_BUSY:
-                    logger.warning("Named Pipe is busy, retrying...")
-                    time.sleep(2)
-                    continue
-
-                if nph == -1:
-                    logger.error(f"Failed to create Named Pipe. Error code: {pipe_error}")
-                    time.sleep(2)
-                    continue
-
-                logger.info("Named Pipe created, waiting for client connection...")
-                ret: bool = kernel32.ConnectNamedPipe(
-                    ctypes.c_uint(nph), ctypes.c_uint(0)
-                )
-
-                if not ret:
-                    error_code = kernel32.GetLastError()
-                    logger.warning(f"Failed to connect to client. Error code: {error_code}")
-                    kernel32.CloseHandle(ctypes_handle(nph))
-                    continue
-
-                self.handle = nph
-                self.alive = True
-                logger.info("Client connected to Named Pipe")
             else:
-                time.sleep(0.2)
+                KERNEL32.CloseHandle(nph)
+                time.sleep(0.5)
