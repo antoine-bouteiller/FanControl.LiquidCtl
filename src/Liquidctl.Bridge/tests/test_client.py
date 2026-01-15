@@ -1,5 +1,6 @@
 import ctypes
 import logging
+import time
 from ctypes import wintypes
 
 import msgspec
@@ -85,7 +86,7 @@ class TestClient(Base):
         self.close()
         return False
 
-    def sendRequest(self, command: str, data: FixedSpeedRequest | None = None):
+    def sendRequest(self, command: str, data: FixedSpeedRequest | None = None, timeout: float = 5.0):
         """Sends a request and returns the decoded BridgeResponse."""
         if not self.alive:
             raise PipeError("Client is not connected")
@@ -98,14 +99,16 @@ class TestClient(Base):
         if not self.write(encoded_bytes):
             raise PipeError("Failed to write to pipe")
 
-        # 3. Read Response (uses Base.read)
-        raw_response = self.read()
+        # 3. Read Response (uses Base.read) - wait for response with timeout
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            raw_response = self.read()
+            if raw_response:
+                # 4. Decode Response -> BridgeResponse Object
+                return msgspec.msgpack.decode(raw_response, type=BridgeResponse)
+            time.sleep(0.01)
 
-        if not raw_response:
-            return None
-
-        # 4. Decode Response -> BridgeResponse Object
-        return msgspec.msgpack.decode(raw_response, type=BridgeResponse)
+        raise PipeError(f"Timeout waiting for response after {timeout}s")
 
     def close(self) -> None:
         """Manually closes the handle since Base doesn't have a close method."""

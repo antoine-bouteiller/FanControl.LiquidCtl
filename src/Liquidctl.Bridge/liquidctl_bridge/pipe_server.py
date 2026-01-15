@@ -169,7 +169,7 @@ class Server(Base):
         if exc_type is KeyboardInterrupt:
             logger.info("KeyboardInterrupt detected, cleaning up Server...")
         elif exc_value:
-            logger.error(f"Error: {exc_value}", exc_info=traceback)
+            logger.error(f"Error: {exc_value}", exc_info=True)
         self.close()
         return False  # Propagate exceptions if any
 

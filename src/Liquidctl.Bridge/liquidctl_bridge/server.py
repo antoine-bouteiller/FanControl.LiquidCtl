@@ -12,6 +12,7 @@ from liquidctl_bridge.models import (
     BridgeResponse,
     FixedSpeedRequest,
     MessageStatus,
+    PipeError,
     PipeRequest,
 )
 from liquidctl_bridge.pipe_server import Server
@@ -80,12 +81,16 @@ def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
 
 
 def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
-    while True:
+    while not pipe.shutdown_event.is_set():
         raw_msg = pipe.read()
 
         if raw_msg:
             response_bytes = process_request(raw_msg, service)
-            pipe.write(response_bytes)
+            try:
+                pipe.write(response_bytes)
+            except PipeError:
+                logger.debug("Client disconnected during response write, discarding response")
+                continue
         else:
             time.sleep(0.05)
 
@@ -108,6 +113,8 @@ def main():
 
     except KeyboardInterrupt:
         logger.info("Stopping server...")
+    except PipeError as e:
+        logger.info(f"Pipe closed: {e}")
     except Exception as e:
         logger.critical(f"Fatal crash: {e}", exc_info=True)
         sys.exit(1)
