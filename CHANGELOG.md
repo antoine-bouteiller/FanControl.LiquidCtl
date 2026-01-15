@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.1](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v1.1.1) (2026-01-15)
+
+
+### 📦 Dependency Updates
+
+* update dependency pyinstaller to v6.17.0 ([#34](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/34)) ([cd341a5](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/cd341a574df58e4bd264a9cebdec35c743dad202))
+* update dependency pyinstaller to v6.18.0 ([#44](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/44)) ([3a16546](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/3a16546353e48bb2cbeb29a9c8682af6073ee860))
+* update dependency pytest to v9.0.2 ([#37](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/37)) ([ca3dcf2](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/ca3dcf294167d3974468c2ed14a93d855e443758))
+* update dependency ruff to v0.14.10 ([#40](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/40)) ([6d75a8f](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/6d75a8f7d15d5eda3cae8446587988a453feb331))
+* update dependency ruff to v0.14.11 ([#42](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/42)) ([027b936](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/027b936a911b76e6b80e58e963d5aec0385532e5))
+* update dependency ruff to v0.14.7 ([#35](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/35)) ([e3f7a72](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/e3f7a72433ccf58f9c2085450de8eda6098cf5ab))
+* update dependency ruff to v0.14.8 ([#36](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/36)) ([f44983a](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/f44983af91310d8903255d4a8fd8c1ab1e0b9913))
+* update dependency ruff to v0.14.9 ([#38](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/38)) ([8826822](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/88268227f307cfb850f94339bcecbf3b1ddf0d2d))
+* update python to v3.14.2 ([#49](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/49)) ([a8727f2](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/a8727f23ee91a45b0f101b1f6cabcec518358ec0))
+
 ## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
 
 
