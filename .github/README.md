@@ -102,8 +102,8 @@ dotnet build
 
 # Build Python bridge
 cd src/Liquidctl.Bridge
-poetry install
-poetry build
+uv sync
+uv build
 
 # Complete release build
 .\build.ps1
