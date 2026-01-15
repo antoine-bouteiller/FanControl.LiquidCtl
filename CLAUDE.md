@@ -26,9 +26,9 @@ Hardware Devices (AIO coolers, smart devices)
 ### Key Technologies
 
 - **.NET 8** (C# plugin)
-- **Python 3.8+** with Poetry (bridge executable)
+- **Python 3.8+** with uv (bridge executable)
 - **Named Pipes** (inter-process communication)
-- **JSON** (message serialization)
+- **MessagePack** (message serialization)
 - **liquidctl** (Python library for hardware control)
 
 ## Plugin Implementation
@@ -117,7 +117,7 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 **Responsibilities:**
 - Manages Python bridge process lifecycle
 - Named Pipe client for IPC
-- JSON serialization/deserialization
+- MessagePack serialization/deserialization
 - Timeout handling (default: 5 seconds)
 
 **Key Methods:**
@@ -147,9 +147,11 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 
 **Pipe Name:** `liquidctl_bridge_<random>`
 
-**Message Format:** JSON
+**Message Format:** MessagePack
 
 ### Commands
+
+> Note: The examples below show the logical structure of messages. Actual wire format is MessagePack binary.
 
 #### Initialize
 ```json
@@ -295,7 +297,7 @@ public void Update()
 **Python Bridge Testing:**
 ```bash
 cd src/Liquidctl.Bridge
-poetry run python -m pytest tests/
+uv run pytest tests/
 ```
 
 ### Building
@@ -309,8 +311,8 @@ dotnet build
 **Python Bridge:**
 ```bash
 cd src/Liquidctl.Bridge
-poetry install
-poetry build
+uv sync
+uv build
 ```
 
 **Complete Release:**
@@ -384,7 +386,8 @@ src/Liquidctl.Bridge/
 │   ├── __main__.py                 # Entry point
 │   └── bridge.py                   # Bridge logic
 ├── tests/
-└── pyproject.toml                  # Poetry config
+├── pyproject.toml                  # Project config
+└── uv.lock                         # uv lockfile
 ```
 
 ## Version Information
