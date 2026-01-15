@@ -175,7 +175,9 @@ class Server(Base):
                     continue
 
                 if nph == -1:
-                    logger.error(f"Failed to create Named Pipe. Error code: {pipe_error}")
+                    logger.error(
+                        f"Failed to create Named Pipe. Error code: {pipe_error}"
+                    )
                     time.sleep(2)
                     continue
 
@@ -186,7 +188,9 @@ class Server(Base):
 
                 if not ret:
                     error_code = kernel32.GetLastError()
-                    logger.warning(f"Failed to connect to client. Error code: {error_code}")
+                    logger.warning(
+                        f"Failed to connect to client. Error code: {error_code}"
+                    )
                     kernel32.CloseHandle(ctypes_handle(nph))
                     continue
 
