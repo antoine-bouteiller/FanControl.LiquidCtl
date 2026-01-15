@@ -1,164 +1,72 @@
-﻿using Newtonsoft.Json;
+using MessagePack;
 using System.Diagnostics;
 using System.IO.Pipes;
-using System.Text;
 using FanControl.Plugins;
+using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
 
 namespace FanControl.LiquidCtl
 {
+    [MessagePackObject]
     public class PipeRequest
     {
-        [JsonProperty("command")]
+        [Key("command")]
         public required string Command { get; set; }
 
-        [JsonProperty("data")]
+        [Key("data")]
         public FixedSpeedRequest? Data { get; set; }
     }
 
+    [MessagePackObject]
     public class SpeedKwargs
     {
-        [JsonProperty("channel")]
+        [Key("channel")]
         public required string Channel { get; set; }
 
-        [JsonProperty("duty")]
+        [Key("duty")]
         public required int Duty { get; set; }
     }
 
+    [MessagePackObject]
     public class FixedSpeedRequest
     {
-        [JsonProperty("device_id")]
+        [Key("device_id")]
         public required int DeviceId { get; set; }
 
-        [JsonProperty("speed_kwargs")]
+        [Key("speed_kwargs")]
         public required SpeedKwargs SpeedKwargs { get; set; }
     }
 
-    public class LiquidctlBridgeWrapper(IPluginLogger logger) : IDisposable
+    [MessagePackObject]
+    public class BridgeResponse<T>
     {
-        private static readonly string liquidctlexe = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "liquidctl_bridge.exe");
-        private const string pipeName = "LiquidCtlPipe";
-        private static Process? bridgeProcess;
-        private static readonly object processLock = new();
+        [Key("status")]
+        public string? Status { get; set; }
+
+        [Key("data")]
+        public T? Data { get; set; }
+
+        [Key("error")]
+        public string? Error { get; set; }
+    }
+
+    public class LiquidctlBridgeWrapper : IDisposable
+    {
+        private readonly IPluginLogger _logger;
+        private static readonly string _exePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "liquidctl_bridge.exe");
+        private const string _pipeName = "LiquidCtlPipe";
+
+        private Process? _bridgeProcess;
         private NamedPipeClientStream? _pipeClient;
+
+        private readonly object _processLock = new();
         private readonly object _pipeLock = new();
         private bool _disposed;
 
-
-        private void EnsureBridgeProcessRunning()
+        public LiquidctlBridgeWrapper(IPluginLogger logger)
         {
-            lock (processLock)
-            {
-                if (bridgeProcess == null || bridgeProcess.HasExited)
-                {
-                    if (!File.Exists(liquidctlexe))
-                    {
-                        throw new FileNotFoundException($"Liquidctl bridge executable not found at: {liquidctlexe}");
-                    }
-
-                    bridgeProcess = new Process
-                    {
-                        StartInfo = new ProcessStartInfo
-                        {
-                            FileName = liquidctlexe,
-                            Arguments = "--log-level ERROR",
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true
-                        }
-                    };
-
-                    bool started = bridgeProcess.Start();
-                    if (!started)
-                    {
-                        throw new InvalidOperationException("Failed to start liquidctl bridge process");
-                    }
-
-                    _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardOutput, isError: false));
-                    _ = Task.Run(() => ReadStreamAsync(bridgeProcess.StandardError, isError: true));
-
-                    Thread.Sleep(2000);
-
-                    if (bridgeProcess.HasExited)
-                    {
-                        throw new InvalidOperationException($"Liquidctl bridge process exited immediately with code: {bridgeProcess.ExitCode}");
-                    }
-                }
-            }
-        }
-
-        private async Task ReadStreamAsync(StreamReader reader, bool isError)
-        {
-            try
-            {
-                string? line;
-                while ((line = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
-                {
-                    if (!string.IsNullOrEmpty(line))
-                    {
-                        logger.Log($"[FanControl.LiquidCtl] {line}");
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    lock (_pipeLock)
-                    {
-                        _pipeClient?.Dispose();
-                        _pipeClient = null;
-                    }
-
-                    lock (processLock)
-                    {
-                        if (bridgeProcess != null && !bridgeProcess.HasExited)
-                        {
-                            bridgeProcess.Kill();
-                            _ = bridgeProcess.WaitForExit(1000);
-                            bridgeProcess.Dispose();
-                            bridgeProcess = null;
-                        }
-                    }
-                }
-
-                _disposed = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void EnsurePipeConnection()
-        {
-            lock (_pipeLock)
-            {
-                if (_pipeClient == null || !_pipeClient.IsConnected)
-                {
-                    try
-                    {
-                        _pipeClient?.Dispose();
-                        _pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut);
-                        _pipeClient.Connect(30000);
-                    }
-                    catch (Exception ex)
-                    {
-                        _pipeClient?.Dispose();
-                        _pipeClient = null;
-                        throw new IOException($"Error connecting to Named Pipe: {ex.Message}", ex);
-                    }
-                }
-            }
+            _logger = logger;
         }
 
         public void Init()
@@ -167,91 +75,211 @@ namespace FanControl.LiquidCtl
             EnsurePipeConnection();
         }
 
-        private string SendPipeRequest(PipeRequest request)
-        {
-            EnsureBridgeProcessRunning();
-            EnsurePipeConnection();
-
-            lock (_pipeLock)
-            {
-                if (_pipeClient == null || !_pipeClient.IsConnected)
-                {
-                    throw new IOException("Unable to establish connection to liquidctl server");
-                }
-
-                try
-                {
-                    string requestJson = JsonConvert.SerializeObject(request);
-                    byte[] requestData = Encoding.UTF8.GetBytes(requestJson);
-
-                    _pipeClient.Write(requestData, 0, requestData.Length);
-                    _pipeClient.Flush();
-
-                    byte[] buffer = new byte[4096];
-                    int bytesRead = _pipeClient.Read(buffer, 0, buffer.Length);
-                    return Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                }
-                catch (IOException ex)
-                {
-                    _pipeClient.Dispose();
-                    _pipeClient = null;
-                    throw new IOException($"Communication error with liquidctl server: {ex.Message}", ex);
-                }
-            }
-        }
-
-        public IReadOnlyCollection<DeviceStatus> GetStatuses()
-        {
-            PipeRequest request = new()
-            {
-                Command = "get.statuses"
-            };
-
-            try
-            {
-                string response = SendPipeRequest(request);
-                return JsonConvert.DeserializeObject<List<DeviceStatus>>(response) ?? [];
-            }
-            catch (JsonException ex)
-            {
-                logger.Log($"Error deserializing statuses: {ex.Message}");
-                return [];
-            }
-            catch (IOException ex)
-            {
-                logger.Log($"IO error retrieving statuses: {ex.Message}");
-                return [];
-            }
-        }
+        public void Shutdown() => Dispose();
 
         public void SetFixedSpeed(FixedSpeedRequest requestData)
         {
-            PipeRequest request = new()
+            var request = new PipeRequest
             {
                 Command = "set.fixed_speed",
                 Data = requestData
             };
 
-            _ = SendPipeRequest(request);
+            Task.Run(() => SendRequestAsync<object?>(request));
         }
 
-        public void Shutdown()
+        public IReadOnlyCollection<DeviceStatus> GetStatuses()
+        {
+            var request = new PipeRequest { Command = "get.statuses" };
+
+            var result = Task.Run(() => SendRequestAsync<List<DeviceStatus>>(request)).GetAwaiter().GetResult();
+            return new ReadOnlyCollection<DeviceStatus>(result ?? new List<DeviceStatus>());
+        }
+
+        private async Task<T?> SendRequestAsync<T>(PipeRequest request)
+        {
+            EnsurePipeConnection();
+
+            try
+            {
+                if (_pipeClient == null || !_pipeClient.IsConnected) return default;
+
+                byte[] payload = MessagePackSerializer.Serialize(request);
+
+                await _pipeClient.WriteAsync(payload.AsMemory()).ConfigureAwait(false);
+                await _pipeClient.FlushAsync().ConfigureAwait(false);
+
+                byte[] buffer = new byte[65536];
+                int bytesRead = await _pipeClient.ReadAsync(buffer.AsMemory()).ConfigureAwait(false);
+
+                if (bytesRead == 0) return default;
+
+                var memory = new ReadOnlyMemory<byte>(buffer, 0, bytesRead);
+                var response = MessagePackSerializer.Deserialize<BridgeResponse<T>>(memory);
+
+                if (response.Status == "error")
+                {
+                    _logger.Log($"[LiquidCtl] Bridge Error: {response.Error}");
+                    return default;
+                }
+
+                return response.Data;
+            }
+            catch (IOException ex)
+            {
+                _logger.Log($"[LiquidCtl] Pipe IO Error: {ex.Message}");
+                DisposePipe();
+                return default;
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.Log($"[LiquidCtl] Pipe Timeout: {ex.Message}");
+                DisposePipe();
+                return default;
+            }
+            catch (MessagePackSerializationException ex)
+            {
+                _logger.Log($"[LiquidCtl] Serialization Error: {ex.Message}");
+                return default;
+            }
+        }
+
+        private void EnsurePipeConnection()
         {
             lock (_pipeLock)
             {
-                _pipeClient?.Dispose();
-                _pipeClient = null;
-            }
+                if (_pipeClient != null && _pipeClient.IsConnected) return;
 
-            lock (processLock)
-            {
-                if (bridgeProcess != null && !bridgeProcess.HasExited)
+                try
                 {
-                    bridgeProcess.Kill();
-                    bridgeProcess.Dispose();
-                    bridgeProcess = null;
+                    DisposePipe();
+                    _pipeClient = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+
+                    _pipeClient.Connect(2000);
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        _pipeClient.ReadMode = PipeTransmissionMode.Message;
+                    }
+                }
+                catch (IOException ex)
+                {
+                    _logger.Log($"[LiquidCtl] Pipe Connect Error: {ex.Message}");
+                    DisposePipe();
+                }
+                catch (TimeoutException ex)
+                {
+                    _logger.Log($"[LiquidCtl] Pipe Connect Timeout: {ex.Message}");
+                    DisposePipe();
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.Log($"[LiquidCtl] Pipe Access Denied: {ex.Message}");
+                    DisposePipe();
                 }
             }
+        }
+
+        private void EnsureBridgeProcessRunning()
+        {
+            lock (_processLock)
+            {
+                if (_bridgeProcess != null && !_bridgeProcess.HasExited) return;
+
+                if (!File.Exists(_exePath))
+                {
+                    _logger.Log($"[LiquidCtl] Executable missing: {_exePath}");
+                    return;
+                }
+
+                try
+                {
+                    _bridgeProcess = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = _exePath,
+                            Arguments = "--log-level INFO",
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true
+                        }
+                    };
+
+                    _bridgeProcess.Start();
+
+                    _ = ReadStreamAsync(_bridgeProcess.StandardOutput);
+                    _ = ReadStreamAsync(_bridgeProcess.StandardError);
+                }
+                catch (Win32Exception ex)
+                {
+                    _logger.Log($"[LiquidCtl] Process Start Error (Win32): {ex.Message}");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.Log($"[LiquidCtl] Process Start Invalid Op: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task ReadStreamAsync(StreamReader reader)
+        {
+            try
+            {
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync().ConfigureAwait(false);
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        _logger.Log($"[LiquidCtl Bridge] {line}");
+                    }
+                }
+            }
+            catch (IOException) { }
+            catch (ObjectDisposedException) { }
+        }
+
+        private void DisposePipe()
+        {
+             _pipeClient?.Dispose();
+             _pipeClient = null;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                lock (_pipeLock)
+                {
+                    DisposePipe();
+                }
+
+                lock (_processLock)
+                {
+                    try
+                    {
+                        if (_bridgeProcess != null && !_bridgeProcess.HasExited)
+                        {
+                            _bridgeProcess.Kill();
+                            _bridgeProcess.Dispose();
+                        }
+                    }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
+
+                    _bridgeProcess = null;
+                }
+            }
+            _disposed = true;
         }
     }
 }

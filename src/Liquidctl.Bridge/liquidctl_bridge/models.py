@@ -1,6 +1,7 @@
-from typing import List, Optional
-import msgspec
 from enum import Enum, IntEnum
+from typing import List, Optional, Union
+
+import msgspec
 
 
 class StatusValue(msgspec.Struct):
@@ -28,9 +29,10 @@ class PipeRequest(msgspec.Struct):
     command: str
     data: Optional[FixedSpeedRequest] = None
 
+
 class BridgeResponse(msgspec.Struct):
     status: MessageStatus
-    data: Optional[Any] = None
+    data: Optional[Union[List["DeviceStatus"], str]] = None
     error: Optional[str] = None
 
 
