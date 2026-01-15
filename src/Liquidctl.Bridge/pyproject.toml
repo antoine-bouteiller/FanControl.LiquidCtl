@@ -20,4 +20,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 path = "../../version.txt"
-pattern = "(?P<version>.+)"
+pattern = '"\\.": "(?P<version>[^"]+)"'
