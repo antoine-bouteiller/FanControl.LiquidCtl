@@ -1,35 +1,38 @@
 using FanControl.Plugins;
+using MessagePack;
 using System.Text.Json.Serialization;
 
 namespace FanControl.LiquidCtl
 {
+    [MessagePackObject]
 	public class StatusValue
 	{
-		[JsonPropertyName("key")]
+		[Key("key")]
 		public required string Key { get; set; }
 
-		[JsonPropertyName("value")]
+		[Key("value")]
 		public double? Value { get; set; }
 
-		[JsonPropertyName("unit")]
+		[Key("unit")]
 		public required string Unit { get; set; }
 	}
 
+	[MessagePackObject]
 	public class DeviceStatus
 	{
-		[JsonPropertyName("id")]
+		[Key("id")]
 		public required int Id { get; set; }
 
-		[JsonPropertyName("bus")]
+		[Key("bus")]
 		public required string Bus { get; set; }
 
-		[JsonPropertyName("address")]
+		[Key("address")]
 		public required string Address { get; set; }
 
-		[JsonPropertyName("description")]
+		[Key("description")]
 		public required string Description { get; set; }
 
-		[JsonPropertyName("status")]
+		[Key("status")]
 		public required IReadOnlyCollection<StatusValue> Status { get; init; }
 	}
 

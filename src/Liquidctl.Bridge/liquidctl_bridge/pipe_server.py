@@ -23,9 +23,14 @@ INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
 
 # Define argument/return types to prevent ctypes guessing errors
 KERNEL32.CreateNamedPipeW.argtypes = [
-    wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-    wintypes.DWORD, wintypes.DWORD, wintypes.DWORD,
-    wintypes.DWORD, wintypes.LPVOID
+    wintypes.LPCWSTR,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.LPVOID,
 ]
 KERNEL32.CreateNamedPipeW.restype = wintypes.HANDLE
 
@@ -33,21 +38,30 @@ KERNEL32.ConnectNamedPipe.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
 KERNEL32.ConnectNamedPipe.restype = wintypes.BOOL
 
 KERNEL32.ReadFile.argtypes = [
-    wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
-    ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+    wintypes.HANDLE,
+    wintypes.LPVOID,
+    wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD),
+    wintypes.LPVOID,
 ]
 KERNEL32.ReadFile.restype = wintypes.BOOL
 
 KERNEL32.WriteFile.argtypes = [
-    wintypes.HANDLE, wintypes.LPCVOID, wintypes.DWORD,
-    ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+    wintypes.HANDLE,
+    wintypes.LPCVOID,
+    wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD),
+    wintypes.LPVOID,
 ]
 KERNEL32.WriteFile.restype = wintypes.BOOL
 
 KERNEL32.PeekNamedPipe.argtypes = [
-    wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
-    ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD),
-    ctypes.POINTER(wintypes.DWORD)
+    wintypes.HANDLE,
+    wintypes.LPVOID,
+    wintypes.DWORD,
+    ctypes.POINTER(wintypes.DWORD),
+    ctypes.POINTER(wintypes.DWORD),
+    ctypes.POINTER(wintypes.DWORD),
 ]
 KERNEL32.PeekNamedPipe.restype = wintypes.BOOL
 
@@ -77,8 +91,7 @@ class Base:
             if not self.alive:
                 return False
             success = KERNEL32.PeekNamedPipe(
-                self.handle, None, 0, None,
-                ctypes.byref(avail_bytes), None
+                self.handle, None, 0, None, ctypes.byref(avail_bytes), None
             )
 
         if not success:
@@ -100,8 +113,7 @@ class Base:
 
             # Peek again to get exact size
             KERNEL32.PeekNamedPipe(
-                self.handle, None, 0, None,
-                ctypes.byref(avail_bytes), None
+                self.handle, None, 0, None, ctypes.byref(avail_bytes), None
             )
 
             if avail_bytes.value == 0:
@@ -111,17 +123,13 @@ class Base:
             read_bytes = wintypes.DWORD(0)
 
             success = KERNEL32.ReadFile(
-                self.handle,
-                buffer,
-                len(buffer),
-                ctypes.byref(read_bytes),
-                None
+                self.handle, buffer, len(buffer), ctypes.byref(read_bytes), None
             )
 
             if not success:
                 return None
 
-            return buffer.raw[:read_bytes.value]
+            return buffer.raw[: read_bytes.value]
 
     def write(self, message: bytes) -> bool:
         if not self.alive:
@@ -134,11 +142,7 @@ class Base:
                 raise PipeError("Pipe is dead!")
 
             success = KERNEL32.WriteFile(
-                self.handle,
-                message,
-                len(message),
-                ctypes.byref(written),
-                None
+                self.handle, message, len(message), ctypes.byref(written), None
             )
 
         if not success:
@@ -194,8 +198,8 @@ class Server(Base):
                 PIPE_UNLIMITED_INSTANCES,
                 65536,  # Out buffer
                 65536,  # In buffer
-                0,      # Default timeout
-                None
+                0,  # Default timeout
+                None,
             )
 
             if nph == INVALID_HANDLE_VALUE:
@@ -218,7 +222,7 @@ class Server(Base):
                 while not self.shutdown_event.is_set():
                     if not self.canread():
                         if KERNEL32.GetLastError() == ERROR_BROKEN_PIPE:
-                             break
+                            break
 
                         time.sleep(0.1)
                     else:

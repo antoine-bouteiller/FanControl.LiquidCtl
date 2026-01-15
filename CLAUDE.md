@@ -377,8 +377,7 @@ src/FanControl.Liquidctl/
 ├── LiquidctlBridgeWrapper.cs       # IPC client
 ├── LiquidctlDevice.cs              # Sensor classes
 ├── ref/
-│   ├── FanControl.Plugins.dll      # Plugin SDK
-│   └── Newtonsoft.Json.dll         # JSON library
+│   └── FanControl.Plugins.dll      # Plugin SDK
 └── FanControl.Liquidctl.csproj
 
 src/Liquidctl.Bridge/
