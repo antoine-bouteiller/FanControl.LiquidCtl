@@ -9,7 +9,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Set-Location ..\Liquidctl.Bridge
-poetry run pyinstaller --onefile ".\liquidctl_bridge\server.py" -n liquidctl_bridge --clean
+uv run pyinstaller --onefile ".\liquidctl_bridge\server.py" -n liquidctl_bridge --clean
 if ($LASTEXITCODE -ne 0) {
     Set-Location ..\..
     Write-Host "pyinstaller failed! Check the output above for errors." -ForegroundColor Red
