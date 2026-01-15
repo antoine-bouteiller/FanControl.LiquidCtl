@@ -19,5 +19,5 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "../../version.txt"
-pattern = "(?P<version>.+)"
+path = "../../.release-please-manifest.json"
+pattern = '\{\s*"\."\s*:\s*"(?P<version>[^"]+)"\s*\}'
