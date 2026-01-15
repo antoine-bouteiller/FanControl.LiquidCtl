@@ -28,6 +28,11 @@ class PipeRequest(msgspec.Struct):
     command: str
     data: Optional[FixedSpeedRequest] = None
 
+class BridgeResponse(msgspec.Struct):
+    status: MessageStatus
+    data: Optional[Any] = None
+    error: Optional[str] = None
+
 
 class LiquidctlException(Exception):
     pass

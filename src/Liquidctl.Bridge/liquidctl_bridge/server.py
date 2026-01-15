@@ -1,83 +1,104 @@
+import argparse
 import logging
 import sys
-import argparse
+import time
+from typing import Any, Callable, Dict, Optional
 
 import msgspec
 
 from liquidctl_bridge.liquidctl_service import LiquidctlService
-from liquidctl_bridge.models import BadRequestException, PipeRequest
+from liquidctl_bridge.models import (
+    BadRequestException,
+    BridgeResponse,
+    FixedSpeedRequest,
+    MessageStatus,
+    PipeRequest,
+)
 from liquidctl_bridge.pipe_server import Server
-import time
 
-pipe_name = "LiquidCtlPipe"
+logger = logging.getLogger(__name__)
 
+def handle_get_statuses(service: LiquidctlService, data: Any) -> Any:
+    return service.get_statuses()
 
-def setup_logging(log_level: str = "INFO"):
-    """Configure logging with the specified level."""
-    try:
-        level = getattr(logging, log_level.upper(), logging.INFO)
-    except AttributeError:
-        level = logging.INFO
-    
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-        ],
+def handle_set_fixed_speed(service: LiquidctlService, data: Optional[FixedSpeedRequest]) -> Any:
+    if data is None:
+        raise BadRequestException("Missing data for set.fixed_speed")
+
+    return service.set_fixed_speed(
+        data.device_id,
+        msgspec.to_builtins(data.speed_kwargs)
     )
 
+COMMAND_HANDLERS: Dict[str, Callable] = {
+    "get.statuses": handle_get_statuses,
+    "set.fixed_speed": handle_set_fixed_speed,
+}
 
-def process_command(request: PipeRequest, liquidctl_service: LiquidctlService):
-    match request.command:
-        case "get.statuses":
-            return liquidctl_service.get_statuses()
-        case "set.fixed_speed":
-            if request.data is None:
-                raise BadRequestException("No data provided")
-            return liquidctl_service.set_fixed_speed(
-                request.data.device_id,
-                msgspec.to_builtins(request.data.speed_kwargs),
-            )
+def setup_logging(log_level: str = "INFO") -> None:
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper(), logging.INFO),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
+def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
+    """Decodes binary MsgPack, runs logic, and returns binary MsgPack."""
+    try:
+        request = msgspec.msgpack.decode(raw_msg, type=PipeRequest)
 
-def handle_pipe_message(liquidctl_service: LiquidctlService, pipe: Server):
-    rawmsg = pipe.read()
-    if not rawmsg:
-        return
+        handler = COMMAND_HANDLERS.get(request.command)
+        if not handler:
+            raise BadRequestException(f"Unknown command: {request.command}")
 
-    request = msgspec.json.decode(rawmsg, type=PipeRequest)
-    response = process_command(request, liquidctl_service)
-    pipe.write(msgspec.json.encode(response))
+        result = handler(service, request.data)
+        response = BridgeResponse(status=MessageStatus.SUCCESS, data=result)
 
+    except (msgspec.DecodeError, msgspec.ValidationError) as e:
+        logger.warning(f"Invalid MessagePack received: {e}")
+        response = BridgeResponse(status=MessageStatus.ERROR, error=f"Protocol Error: {e}")
+
+    except BadRequestException as e:
+        logger.warning(f"Bad Request: {e}")
+        response = BridgeResponse(status=MessageStatus.ERROR, error=str(e))
+
+    except Exception as e:
+        logger.exception("Internal Error processing command")
+        response = BridgeResponse(status=MessageStatus.ERROR, error=f"Internal Error: {e}")
+
+    return msgspec.msgpack.encode(response)
+
+def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
+    while True:
+        raw_msg = pipe.read()
+
+        if raw_msg:
+            response_bytes = process_request(raw_msg, service)
+            pipe.write(response_bytes)
+        else:
+            time.sleep(0.05)
 
 def main():
     parser = argparse.ArgumentParser(description="Liquidctl Bridge Server")
-    parser.add_argument(
-        "--log-level",
-        type=str,
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging level (default: INFO)",
-    )
+    parser.add_argument("--log-level", default="INFO", help="Logging level")
     args = parser.parse_args()
 
     setup_logging(args.log_level)
-    logger = logging.getLogger(__name__)
+    pipe_name = "LiquidCtlPipe"
 
     try:
-        with LiquidctlService() as liquidctl_service, Server(name=pipe_name) as pipe:
-            logger.info("Started Liquidctl Bridge Server")
-            liquidctl_service.initialize_all()
-            while True:
-                if pipe.alive:
-                    handle_pipe_message(liquidctl_service, pipe)
-                else:
-                    time.sleep(0.2)
-    except Exception as e:
-        logger.error(f"Fatal error in bridge server: {e}", exc_info=True)
-        sys.exit(1)
+        with LiquidctlService() as service, Server(name=pipe_name) as pipe:
+            logger.info("Initializing Liquidctl devices...")
+            service.initialize_all()
+            logger.info(f"Bridge Server listening on \\\\.\\pipe\\{pipe_name}")
 
+            run_server_loop(service, pipe)
+
+    except KeyboardInterrupt:
+        logger.info("Stopping server...")
+    except Exception as e:
+        logger.critical(f"Fatal crash: {e}", exc_info=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
