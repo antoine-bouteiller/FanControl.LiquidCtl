@@ -242,8 +242,8 @@ namespace FanControl.LiquidCtl
 
         private void DisposePipe()
         {
-             _pipeClient?.Dispose();
-             _pipeClient = null;
+            _pipeClient?.Dispose();
+            _pipeClient = null;
         }
 
         public void Dispose()
