@@ -42,13 +42,11 @@ logger = logging.getLogger(__name__)
 
 class TestClient(Base):
     def __init__(self, name: str) -> None:
-        # Base init sets self.handle = None
         super().__init__(Mode.MASTER)
         self.name = name
 
         pipe_path = f"\\\\.\\pipe\\{name}"
 
-        # 1. Open the Pipe
         handle = KERNEL32.CreateFileW(
             pipe_path,
             GENERIC_READ | GENERIC_WRITE,
@@ -62,10 +60,8 @@ class TestClient(Base):
         if handle == INVALID_HANDLE_VALUE:
             raise PipeError(f"Pipe Open Failed [{KERNEL32.GetLastError()}]")
 
-        # Assigning handle automatically makes self.alive (property) return True
         self.handle = handle
 
-        # 2. Set Pipe Mode to MESSAGE
         mode = wintypes.DWORD(PIPE_READMODE_MESSAGE)
         ret = KERNEL32.SetNamedPipeHandleState(
             self.handle,
@@ -91,20 +87,16 @@ class TestClient(Base):
         if not self.alive:
             raise PipeError("Client is not connected")
 
-        # 1. Encode Request -> MessagePack Bytes
         req = PipeRequest(command=command, data=data)
         encoded_bytes = msgspec.msgpack.encode(req)
 
-        # 2. Write (uses Base.write)
         if not self.write(encoded_bytes):
             raise PipeError("Failed to write to pipe")
 
-        # 3. Read Response (uses Base.read) - wait for response with timeout
         start_time = time.time()
         while time.time() - start_time < timeout:
             raw_response = self.read()
             if raw_response:
-                # 4. Decode Response -> BridgeResponse Object
                 return msgspec.msgpack.decode(raw_response, type=BridgeResponse)
             time.sleep(0.01)
 
