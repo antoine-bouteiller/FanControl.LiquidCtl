@@ -132,3 +132,4 @@ FanControl.LiquidCtl/
 
 - [FanControl Plugin Documentation](https://github.com/Rem0o/FanControl.Releases/wiki/Plugins)
 - [liquidctl Documentation](https://github.com/liquidctl/liquidctl)
+- [Coolercontrol](https://gitlab.com/coolercontrol/coolercontrol) most of the liquidctl wrapper code comes from it

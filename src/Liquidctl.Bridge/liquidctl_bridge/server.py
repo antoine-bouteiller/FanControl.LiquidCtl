@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Optional
 
 import msgspec
 
-from liquidctl_bridge.liquidctl_service import LiquidctlService
+from liquidctl_bridge.service import LiquidctlService
 from liquidctl_bridge.models import (
     BadRequestException,
     BridgeResponse,

@@ -4,6 +4,7 @@ import threading
 import time
 from ctypes import wintypes
 from typing import Optional
+
 from liquidctl_bridge.models import Mode, PipeError
 
 # --- Win32 API Definitions ---
@@ -95,7 +96,6 @@ class Base:
             )
 
         if not success:
-            # If Peek fails, the pipe is likely broken/closed
             return False
 
         return avail_bytes.value > 0
@@ -111,7 +111,6 @@ class Base:
             if not self.alive:
                 return None
 
-            # Peek again to get exact size
             KERNEL32.PeekNamedPipe(
                 self.handle, None, 0, None, ctypes.byref(avail_bytes), None
             )

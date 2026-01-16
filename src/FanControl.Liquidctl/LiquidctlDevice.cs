@@ -1,40 +1,7 @@
 using FanControl.Plugins;
-using MessagePack;
 
 namespace FanControl.LiquidCtl
 {
-    [MessagePackObject]
-    public class StatusValue
-    {
-        [Key("key")]
-        public required string Key { get; set; }
-
-        [Key("value")]
-        public double? Value { get; set; }
-
-        [Key("unit")]
-        public required string Unit { get; set; }
-    }
-
-    [MessagePackObject]
-    public class DeviceStatus
-    {
-        [Key("id")]
-        public required int Id { get; set; }
-
-        [Key("bus")]
-        public required string Bus { get; set; }
-
-        [Key("address")]
-        public required string Address { get; set; }
-
-        [Key("description")]
-        public required string Description { get; set; }
-
-        [Key("status")]
-        public required IReadOnlyCollection<StatusValue> Status { get; init; }
-    }
-
     public class DeviceSensor : IPluginSensor
     {
         public string Id => $"{Device.Description}/{Channel.Key}".Replace(" ", "", StringComparison.Ordinal);
@@ -42,6 +9,7 @@ namespace FanControl.LiquidCtl
         public float? Value => (float?)Channel.Value;
 
         public void Update() { }
+
         internal void Update(StatusValue status)
         {
             Channel = status;
@@ -49,6 +17,7 @@ namespace FanControl.LiquidCtl
 
         internal DeviceStatus Device { get; }
         internal StatusValue Channel { get; set; }
+
         internal DeviceSensor(DeviceStatus device, StatusValue channel)
         {
             Device = device;

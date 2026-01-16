@@ -8,53 +8,13 @@ using System.ComponentModel;
 
 namespace FanControl.LiquidCtl
 {
-    [MessagePackObject]
-    public class PipeRequest
-    {
-        [Key("command")]
-        public required string Command { get; set; }
-
-        [Key("data")]
-        public FixedSpeedRequest? Data { get; set; }
-    }
-
-    [MessagePackObject]
-    public class SpeedKwargs
-    {
-        [Key("channel")]
-        public required string Channel { get; set; }
-
-        [Key("duty")]
-        public required int Duty { get; set; }
-    }
-
-    [MessagePackObject]
-    public class FixedSpeedRequest
-    {
-        [Key("device_id")]
-        public required int DeviceId { get; set; }
-
-        [Key("speed_kwargs")]
-        public required SpeedKwargs SpeedKwargs { get; set; }
-    }
-
-    [MessagePackObject]
-    public class BridgeResponse<T>
-    {
-        [Key("status")]
-        public string? Status { get; set; }
-
-        [Key("data")]
-        public T? Data { get; set; }
-
-        [Key("error")]
-        public string? Error { get; set; }
-    }
-
     public class LiquidctlBridgeWrapper : IDisposable
     {
         private readonly IPluginLogger _logger;
-        private static readonly string _exePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "liquidctl_bridge.exe");
+        private static readonly string _exePath = Path.Combine(
+            Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "",
+            "liquidctl_bridge.exe"
+        );
         private const string _pipeName = "LiquidCtlPipe";
 
         private Process? _bridgeProcess;
@@ -62,6 +22,7 @@ namespace FanControl.LiquidCtl
 
         private readonly object _processLock = new();
         private readonly object _pipeLock = new();
+        private readonly SemaphoreSlim _requestSemaphore = new(1, 1);
         private bool _disposed;
 
         public LiquidctlBridgeWrapper(IPluginLogger logger)
@@ -72,7 +33,23 @@ namespace FanControl.LiquidCtl
         public void Init()
         {
             EnsureBridgeProcessRunning();
-            EnsurePipeConnection();
+
+            for (int attempt = 0; attempt < BridgeConfig.MaxConnectRetries; attempt++)
+            {
+                EnsurePipeConnection();
+                if (_pipeClient is { IsConnected: true })
+                {
+                    return;
+                }
+
+                if (attempt < BridgeConfig.MaxConnectRetries - 1)
+                {
+                    _logger.Log($"[LiquidCtl] Connection attempt {attempt + 1} failed, retrying...");
+                    Thread.Sleep(BridgeConfig.RetryDelayMs);
+                }
+            }
+
+            _logger.Log($"[LiquidCtl] Failed to connect after {BridgeConfig.MaxConnectRetries} attempts");
         }
 
         public void Shutdown() => Dispose();
@@ -98,24 +75,38 @@ namespace FanControl.LiquidCtl
 
         private async Task<T?> SendRequestAsync<T>(PipeRequest request)
         {
-            EnsurePipeConnection();
+            if (!await _requestSemaphore.WaitAsync(BridgeConfig.RequestTimeoutMs).ConfigureAwait(false))
+            {
+                _logger.Log("[LiquidCtl] Request timeout waiting for semaphore");
+                return default;
+            }
 
             try
             {
-                if (_pipeClient == null || !_pipeClient.IsConnected) return default;
+                EnsurePipeConnection();
+
+                if (_pipeClient is not { IsConnected: true })
+                {
+                    return default;
+                }
+
+                using var cts = new CancellationTokenSource(BridgeConfig.RequestTimeoutMs);
 
                 byte[] payload = MessagePackSerializer.Serialize(request);
-
-                await _pipeClient.WriteAsync(payload.AsMemory()).ConfigureAwait(false);
-                await _pipeClient.FlushAsync().ConfigureAwait(false);
+                await _pipeClient.WriteAsync(payload.AsMemory(), cts.Token).ConfigureAwait(false);
+                await _pipeClient.FlushAsync(cts.Token).ConfigureAwait(false);
 
                 byte[] buffer = new byte[65536];
-                int bytesRead = await _pipeClient.ReadAsync(buffer.AsMemory()).ConfigureAwait(false);
+                int bytesRead = await _pipeClient.ReadAsync(buffer.AsMemory(), cts.Token).ConfigureAwait(false);
 
-                if (bytesRead == 0) return default;
+                if (bytesRead == 0)
+                {
+                    return default;
+                }
 
-                var memory = new ReadOnlyMemory<byte>(buffer, 0, bytesRead);
-                var response = MessagePackSerializer.Deserialize<BridgeResponse<T>>(memory);
+                var response = MessagePackSerializer.Deserialize<BridgeResponse<T>>(
+                    new ReadOnlyMemory<byte>(buffer, 0, bytesRead)
+                );
 
                 if (response.Status == "error")
                 {
@@ -125,37 +116,53 @@ namespace FanControl.LiquidCtl
 
                 return response.Data;
             }
+            catch (OperationCanceledException)
+            {
+                _logger.Log("[LiquidCtl] Request timed out");
+                DisposePipe();
+            }
             catch (IOException ex)
             {
                 _logger.Log($"[LiquidCtl] Pipe IO Error: {ex.Message}");
                 DisposePipe();
-                return default;
             }
             catch (TimeoutException ex)
             {
                 _logger.Log($"[LiquidCtl] Pipe Timeout: {ex.Message}");
                 DisposePipe();
-                return default;
             }
             catch (MessagePackSerializationException ex)
             {
                 _logger.Log($"[LiquidCtl] Serialization Error: {ex.Message}");
-                return default;
             }
+            finally
+            {
+                _requestSemaphore.Release();
+            }
+
+            return default;
         }
 
         private void EnsurePipeConnection()
         {
             lock (_pipeLock)
             {
-                if (_pipeClient != null && _pipeClient.IsConnected) return;
+                if (_pipeClient is { IsConnected: true })
+                {
+                    return;
+                }
 
                 try
                 {
                     DisposePipe();
-                    _pipeClient = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+                    _pipeClient = new NamedPipeClientStream(
+                        ".",
+                        _pipeName,
+                        PipeDirection.InOut,
+                        PipeOptions.Asynchronous
+                    );
 
-                    _pipeClient.Connect(2000);
+                    _pipeClient.Connect(BridgeConfig.PipeConnectTimeoutMs);
 
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
@@ -267,7 +274,7 @@ namespace FanControl.LiquidCtl
                 {
                     try
                     {
-                        if (_bridgeProcess != null && !_bridgeProcess.HasExited)
+                        if (_bridgeProcess is { HasExited: false })
                         {
                             _bridgeProcess.Kill();
                             _bridgeProcess.Dispose();
@@ -278,7 +285,10 @@ namespace FanControl.LiquidCtl
 
                     _bridgeProcess = null;
                 }
+
+                _requestSemaphore.Dispose();
             }
+
             _disposed = true;
         }
     }
