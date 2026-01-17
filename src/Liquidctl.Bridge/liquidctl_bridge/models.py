@@ -47,8 +47,6 @@ class BadRequestException(Exception):
 class DeviceStatus(msgspec.Struct):
     id: int
     description: str
-    bus: str
-    address: str
     status: List[StatusValue]
 
 

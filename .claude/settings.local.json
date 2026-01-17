@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dotnet restore:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet clean:*)"
+      "Bash(dotnet clean:*)",
+      "Bash(uv run:*)",
+      "WebFetch(domain:gitlab.com)"
     ]
   }
 }
