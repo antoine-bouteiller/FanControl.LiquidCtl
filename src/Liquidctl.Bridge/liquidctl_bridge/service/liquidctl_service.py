@@ -1,5 +1,4 @@
 import logging
-import re
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -125,8 +124,6 @@ class LiquidctlService:
             return DeviceStatus(
                 id=device_id,
                 description=lc_device.description,
-                bus=lc_device.bus,
-                address=lc_device.address,
                 status=status_values,
             )
 
@@ -174,8 +171,6 @@ class LiquidctlService:
         return DeviceStatus(
             id=device_id,
             description=lc_device.description,
-            bus=lc_device.bus,
-            address=lc_device.address,
             status=status_values,
         )
 
@@ -190,8 +185,6 @@ class LiquidctlService:
         return DeviceStatus(
             id=device_id,
             description=lc_device.description,
-            bus=lc_device.bus,
-            address=lc_device.address,
             status=cached,
         )
 
@@ -249,42 +242,11 @@ class LiquidctlService:
 
         result: List[StatusValue] = []
         for status in statuses:
-            key = status[0]
-
             try:
                 value = float(status[1])
             except (ValueError, TypeError):
                 value = None
 
-            result.append(
-                StatusValue(
-                    key=LiquidctlService._format_status_key(key),
-                    value=value,
-                    unit=str(status[2]),
-                )
-            )
+            result.append(StatusValue(key=str(status[0]), value=value, unit=str(status[2])))
 
         return result
-
-    @staticmethod
-    def _format_status_key(string: str) -> str:
-        """
-        Format status key by normalizing fan names and removing 'duty' suffix.
-
-        Examples:
-            "Fan 1 duty" -> "fan1"
-            "Fan 2 speed" -> "fan2 speed"
-            "Pump duty" -> "pump"
-            "Temperature" -> "temperature"
-        """
-        string = string.lower()
-
-        fan_pattern = re.match(r"fan\s*(\d+)(?:\s*duty)?(.*)", string)
-        if fan_pattern:
-            return f"fan{fan_pattern.group(1)}{fan_pattern.group(2)}"
-
-        generic_pattern = re.match(r"(.*?)(?:\s*duty)", string)
-        if generic_pattern:
-            return generic_pattern.group(1)
-
-        return string

@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, Optional
 
 import msgspec
 
-from liquidctl_bridge.service import LiquidctlService
 from liquidctl_bridge.models import (
     BadRequestException,
     BridgeResponse,
@@ -16,6 +15,7 @@ from liquidctl_bridge.models import (
     PipeRequest,
 )
 from liquidctl_bridge.pipe_server import Server
+from liquidctl_bridge.service import LiquidctlService
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +97,11 @@ def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Liquidctl Bridge Server")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
+    parser.add_argument("--test", default=False, action="store_true", help="Running as test")
     args = parser.parse_args()
 
     setup_logging(args.log_level)
-    pipe_name = "LiquidCtlPipe"
+    pipe_name = f"LiquidCtlPipe{'Test' if args.test else ''}"
 
     try:
         with LiquidctlService() as service, Server(name=pipe_name) as pipe:

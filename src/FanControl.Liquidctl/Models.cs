@@ -66,12 +66,6 @@ namespace FanControl.LiquidCtl
         [JsonProperty("id")]
         public required int Id { get; set; }
 
-        [JsonProperty("bus")]
-        public required string Bus { get; set; }
-
-        [JsonProperty("address")]
-        public required string Address { get; set; }
-
         [JsonProperty("description")]
         public required string Description { get; set; }
 

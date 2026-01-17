@@ -4,8 +4,8 @@ namespace FanControl.LiquidCtl
 {
     public class DeviceSensor : IPluginSensor
     {
-        public string Id => $"{Device.Description}/{Channel.Key}".Replace(" ", "", StringComparison.Ordinal);
-        public string Name => $"{Device.Description}: {Channel.Key}";
+        public string Id => Utils.CreateSensorId(Device.Description, Channel.Key);
+        public virtual string Name => Utils.CreateSensorName(Device.Description, Channel.Key);
         public float? Value => (float?)Channel.Value;
 
         public void Update() { }
@@ -29,6 +29,7 @@ namespace FanControl.LiquidCtl
     {
         internal float? Initial { get; }
         private readonly LiquidctlBridgeWrapper liquidctl;
+        private readonly string channelName;
 
         public string? PairedFanSensorId { get; internal set; }
 
@@ -37,6 +38,7 @@ namespace FanControl.LiquidCtl
         {
             Initial = Value;
             this.liquidctl = liquidctl;
+            channelName = Utils.ExtractChannelName(channel.Key);
         }
 
         public void Reset()
@@ -55,7 +57,7 @@ namespace FanControl.LiquidCtl
                 SpeedKwargs = new SpeedKwargs
                 {
                     Duty = (int)Math.Round(val),
-                    Channel = Channel.Key.Replace(" ", "", StringComparison.Ordinal)
+                    Channel = channelName
                 }
             });
         }

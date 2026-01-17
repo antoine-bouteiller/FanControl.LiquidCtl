@@ -53,8 +53,8 @@ namespace FanControl.LiquidCtl
             {
                 if (sensor is not ControlSensor controlSensor) { continue; }
 
-                string speedChannelKey = $"{controlSensor.Channel.Key} speed";
-                string potentialSpeedSensorId = $"{controlSensor.Device.Description}/{speedChannelKey}".Replace(" ", "", StringComparison.Ordinal);
+                string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(controlSensor.Channel.Key);
+                string potentialSpeedSensorId = Utils.CreateSensorId(controlSensor.Device.Description, speedChannelKey);
 
                 if (sensors.TryGetValue(potentialSpeedSensorId, out DeviceSensor? speedSensor) && speedSensor is not ControlSensor)
                 {
