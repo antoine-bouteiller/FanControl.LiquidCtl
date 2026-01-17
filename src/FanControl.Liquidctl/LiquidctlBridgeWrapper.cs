@@ -1,6 +1,7 @@
-using MessagePack;
+using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Text;
 using FanControl.Plugins;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
@@ -92,7 +93,8 @@ namespace FanControl.LiquidCtl
 
                 using var cts = new CancellationTokenSource(BridgeConfig.RequestTimeoutMs);
 
-                byte[] payload = MessagePackSerializer.Serialize(request);
+                string jsonPayload = JsonConvert.SerializeObject(request);
+                byte[] payload = Encoding.UTF8.GetBytes(jsonPayload);
                 await _pipeClient.WriteAsync(payload.AsMemory(), cts.Token).ConfigureAwait(false);
                 await _pipeClient.FlushAsync(cts.Token).ConfigureAwait(false);
 
@@ -104,9 +106,14 @@ namespace FanControl.LiquidCtl
                     return default;
                 }
 
-                var response = MessagePackSerializer.Deserialize<BridgeResponse<T>>(
-                    new ReadOnlyMemory<byte>(buffer, 0, bytesRead)
-                );
+                string jsonResponse = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                var response = JsonConvert.DeserializeObject<BridgeResponse<T>>(jsonResponse);
+
+                if (response == null)
+                {
+                    _logger.Log("[LiquidCtl] Failed to deserialize response");
+                    return default;
+                }
 
                 if (response.Status == "error")
                 {
@@ -131,9 +138,9 @@ namespace FanControl.LiquidCtl
                 _logger.Log($"[LiquidCtl] Pipe Timeout: {ex.Message}");
                 DisposePipe();
             }
-            catch (MessagePackSerializationException ex)
+            catch (JsonException ex)
             {
-                _logger.Log($"[LiquidCtl] Serialization Error: {ex.Message}");
+                _logger.Log($"[LiquidCtl] JSON Serialization Error: {ex.Message}");
             }
             finally
             {
@@ -206,7 +213,7 @@ namespace FanControl.LiquidCtl
                         StartInfo = new ProcessStartInfo
                         {
                             FileName = _exePath,
-                            Arguments = "--log-level INFO",
+                            Arguments = "--log-level ERROR",
                             UseShellExecute = false,
                             CreateNoWindow = true,
                             RedirectStandardOutput = true,
@@ -214,10 +221,20 @@ namespace FanControl.LiquidCtl
                         }
                     };
 
-                    _bridgeProcess.Start();
+                    _bridgeProcess.OutputDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(e.Data))
+                            _logger.Log($"[LiquidCtl Bridge] {e.Data}");
+                    };
+                    _bridgeProcess.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(e.Data))
+                            _logger.Log($"[LiquidCtl Bridge] {e.Data}");
+                    };
 
-                    _ = ReadStreamAsync(_bridgeProcess.StandardOutput);
-                    _ = ReadStreamAsync(_bridgeProcess.StandardError);
+                    _bridgeProcess.Start();
+                    _bridgeProcess.BeginOutputReadLine();
+                    _bridgeProcess.BeginErrorReadLine();
                 }
                 catch (Win32Exception ex)
                 {
@@ -228,23 +245,6 @@ namespace FanControl.LiquidCtl
                     _logger.Log($"[LiquidCtl] Process Start Invalid Op: {ex.Message}");
                 }
             }
-        }
-
-        private async Task ReadStreamAsync(StreamReader reader)
-        {
-            try
-            {
-                while (!reader.EndOfStream)
-                {
-                    var line = await reader.ReadLineAsync().ConfigureAwait(false);
-                    if (!string.IsNullOrWhiteSpace(line))
-                    {
-                        _logger.Log($"[LiquidCtl Bridge] {line}");
-                    }
-                }
-            }
-            catch (IOException) { }
-            catch (ObjectDisposedException) { }
         }
 
         private void DisposePipe()

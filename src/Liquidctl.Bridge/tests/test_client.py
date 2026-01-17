@@ -88,7 +88,7 @@ class TestClient(Base):
             raise PipeError("Client is not connected")
 
         req = PipeRequest(command=command, data=data)
-        encoded_bytes = msgspec.msgpack.encode(req)
+        encoded_bytes = msgspec.json.encode(req)
 
         if not self.write(encoded_bytes):
             raise PipeError("Failed to write to pipe")
@@ -97,7 +97,7 @@ class TestClient(Base):
         while time.time() - start_time < timeout:
             raw_response = self.read()
             if raw_response:
-                return msgspec.msgpack.decode(raw_response, type=BridgeResponse)
+                return msgspec.json.decode(raw_response, type=BridgeResponse)
             time.sleep(0.01)
 
         raise PipeError(f"Timeout waiting for response after {timeout}s")

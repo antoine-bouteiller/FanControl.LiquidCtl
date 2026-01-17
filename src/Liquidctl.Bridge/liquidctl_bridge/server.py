@@ -30,9 +30,8 @@ def handle_set_fixed_speed(
     if data is None:
         raise BadRequestException("Missing data for set.fixed_speed")
 
-    return service.set_fixed_speed(
-        data.device_id, msgspec.to_builtins(data.speed_kwargs)
-    )
+    speed_kwargs = {"channel": data.speed_kwargs.channel, "duty": data.speed_kwargs.duty}
+    return service.set_fixed_speed(data.device_id, speed_kwargs)
 
 
 COMMAND_HANDLERS: Dict[str, Callable] = {
@@ -50,9 +49,9 @@ def setup_logging(log_level: str = "INFO") -> None:
 
 
 def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
-    """Decodes binary MsgPack, runs logic, and returns binary MsgPack."""
+    """Decodes JSON, runs logic, and returns JSON."""
     try:
-        request = msgspec.msgpack.decode(raw_msg, type=PipeRequest)
+        request = msgspec.json.decode(raw_msg, type=PipeRequest)
 
         handler = COMMAND_HANDLERS.get(request.command)
         if not handler:
@@ -62,7 +61,7 @@ def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
         response = BridgeResponse(status=MessageStatus.SUCCESS, data=result)
 
     except (msgspec.DecodeError, msgspec.ValidationError) as e:
-        logger.warning(f"Invalid MessagePack received: {e}")
+        logger.warning(f"Invalid JSON received: {e}")
         response = BridgeResponse(
             status=MessageStatus.ERROR, error=f"Protocol Error: {e}"
         )
@@ -77,7 +76,7 @@ def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
             status=MessageStatus.ERROR, error=f"Internal Error: {e}"
         )
 
-    return msgspec.msgpack.encode(response)
+    return msgspec.json.encode(response)
 
 
 def run_server_loop(service: LiquidctlService, pipe: Server) -> None:

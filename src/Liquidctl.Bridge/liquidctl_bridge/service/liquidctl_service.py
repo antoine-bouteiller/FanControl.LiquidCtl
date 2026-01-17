@@ -1,4 +1,5 @@
 import logging
+import re
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -17,7 +18,6 @@ from liquidctl_bridge.service.config import (
     MAX_INIT_RETRIES,
 )
 from liquidctl_bridge.service.executor import DeviceExecutor
-from liquidctl_bridge.service.formatters import format_status_key
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ class LiquidctlService:
 
         if self._executor.device_queue_empty(device_id):
             async_job = self._executor.submit(
-                device_id, self._long_async_status_request, device_id=device_id
+                device_id, lambda dev_id=device_id: self._long_async_status_request(dev_id)
             )
 
             if cached is not None:
@@ -258,10 +258,33 @@ class LiquidctlService:
 
             result.append(
                 StatusValue(
-                    key=format_status_key(key),
+                    key=LiquidctlService._format_status_key(key),
                     value=value,
                     unit=str(status[2]),
                 )
             )
 
         return result
+
+    @staticmethod
+    def _format_status_key(string: str) -> str:
+        """
+        Format status key by normalizing fan names and removing 'duty' suffix.
+
+        Examples:
+            "Fan 1 duty" -> "fan1"
+            "Fan 2 speed" -> "fan2 speed"
+            "Pump duty" -> "pump"
+            "Temperature" -> "temperature"
+        """
+        string = string.lower()
+
+        fan_pattern = re.match(r"fan\s*(\d+)(?:\s*duty)?(.*)", string)
+        if fan_pattern:
+            return f"fan{fan_pattern.group(1)}{fan_pattern.group(2)}"
+
+        generic_pattern = re.match(r"(.*?)(?:\s*duty)", string)
+        if generic_pattern:
+            return generic_pattern.group(1)
+
+        return string

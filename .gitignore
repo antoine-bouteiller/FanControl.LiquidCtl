@@ -10,6 +10,7 @@ liquidctl.exe
 # C#
 bin
 obj
+FodyWeavers.xsd
 
 # Python
 .venv

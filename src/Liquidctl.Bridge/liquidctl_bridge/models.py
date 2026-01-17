@@ -10,7 +10,7 @@ class StatusValue(msgspec.Struct):
     unit: str
 
 
-class MessageStatus(Enum):
+class MessageStatus(str, Enum):
     SUCCESS = "success"
     ERROR = "error"
 
