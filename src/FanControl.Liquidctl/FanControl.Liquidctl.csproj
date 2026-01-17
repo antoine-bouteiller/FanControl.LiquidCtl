@@ -21,11 +21,8 @@
     <Reference Include="FanControl.Plugins">
       <HintPath>.\ref\FanControl.Plugins.dll</HintPath>
     </Reference>
-    <Reference Include="MessagePack">
-      <HintPath>.\ref\MessagePack.dll</HintPath>
-    </Reference>
-    <Reference Include="MessagePack.Annotations">
-      <HintPath>.\ref\MessagePack.Annotations.dll</HintPath>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>.\ref\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-using MessagePack;
+using Newtonsoft.Json;
 
 namespace FanControl.LiquidCtl
 {
@@ -10,78 +10,72 @@ namespace FanControl.LiquidCtl
         public const int RetryDelayMs = 500;
     }
 
-    [MessagePackObject]
     public class PipeRequest
     {
-        [Key("command")]
+        [JsonProperty("command")]
         public required string Command { get; set; }
 
-        [Key("data")]
+        [JsonProperty("data")]
         public FixedSpeedRequest? Data { get; set; }
     }
 
-    [MessagePackObject]
     public class SpeedKwargs
     {
-        [Key("channel")]
+        [JsonProperty("channel")]
         public required string Channel { get; set; }
 
-        [Key("duty")]
+        [JsonProperty("duty")]
         public required int Duty { get; set; }
     }
 
-    [MessagePackObject]
     public class FixedSpeedRequest
     {
-        [Key("device_id")]
+        [JsonProperty("device_id")]
         public required int DeviceId { get; set; }
 
-        [Key("speed_kwargs")]
+        [JsonProperty("speed_kwargs")]
         public required SpeedKwargs SpeedKwargs { get; set; }
     }
 
-    [MessagePackObject]
     public class BridgeResponse<T>
     {
-        [Key("status")]
+        [JsonProperty("status")]
         public string? Status { get; set; }
 
-        [Key("data")]
+        [JsonProperty("data")]
         public T? Data { get; set; }
 
-        [Key("error")]
+        [JsonProperty("error")]
         public string? Error { get; set; }
     }
 
-    [MessagePackObject]
     public class StatusValue
     {
-        [Key("key")]
+        [JsonProperty("key")]
         public required string Key { get; set; }
 
-        [Key("value")]
+        [JsonProperty("value")]
         public double? Value { get; set; }
 
-        [Key("unit")]
+        [JsonProperty("unit")]
         public required string Unit { get; set; }
     }
 
-    [MessagePackObject]
     public class DeviceStatus
     {
-        [Key("id")]
+        [JsonProperty("id")]
         public required int Id { get; set; }
 
-        [Key("bus")]
+        [JsonProperty("bus")]
         public required string Bus { get; set; }
 
-        [Key("address")]
+        [JsonProperty("address")]
         public required string Address { get; set; }
 
-        [Key("description")]
+        [JsonProperty("description")]
         public required string Description { get; set; }
 
-        [Key("status")]
+        [JsonProperty("status")]
         public required IReadOnlyCollection<StatusValue> Status { get; init; }
     }
 }
