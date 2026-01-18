@@ -20,11 +20,6 @@ from liquidctl_server.service import LiquidctlService
 logger = logging.getLogger(__name__)
 
 
-def handle_handshake(service: LiquidctlService, data: Any) -> Any:
-    """Handshake to verify bridge is ready (CoolerControl pattern)."""
-    return {"shake": True}
-
-
 def handle_get_statuses(service: LiquidctlService, data: Any) -> Any:
     return service.get_statuses()
 
@@ -40,7 +35,6 @@ def handle_set_fixed_speed(
 
 
 COMMAND_HANDLERS: Dict[str, Callable] = {
-    "handshake": handle_handshake,
     "get.statuses": handle_get_statuses,
     "set.fixed_speed": handle_set_fixed_speed,
 }

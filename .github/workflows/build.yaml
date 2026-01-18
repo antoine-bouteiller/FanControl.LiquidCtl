@@ -25,7 +25,7 @@ jobs:
             $artifactName = "FanControl.Liquidctl-Build-${{ github.run_number }}"
           }
           echo "artifact-name=$artifactName" >> $env:GITHUB_OUTPUT
-          Write-Host "Artifact name: $artifactName" -ForegroundColor Green
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -42,28 +42,46 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
+      - name: Cache Nuitka
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~\AppData\Local\Nuitka\Nuitka
+            ~\.cache\Nuitka
+          key: nuitka-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            nuitka-${{ runner.os }}-
+
       - name: Build .NET Plugin
         run: |
           Set-Location .\src\FanControl.Liquidctl
-          dotnet build
+          dotnet build -c Release
 
       - name: Build Python Bridge
         run: |
           Set-Location .\src\liquidctl_server
           uv sync
           uv run ruff check
-          uv run pyinstaller --onefile ".\liquidctl_server\server.py" -n liquidctl --clean
+          uv run python -m nuitka `
+            --standalone `
+            --onefile `
+            --output-filename=liquidctl_server.exe `
+            --output-dir=dist `
+            --remove-output `
+            --assume-yes-for-downloads `
+            --windows-console-mode=disable `
+            .\liquidctl_server\server.py
 
       - name: Create Artifact Archive
         run: |
           $compress = @{
-            Path            = ".\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll", ".\src\liquidctl_server\dist\liquidctl.exe"
+            Path            = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll", ".\src\liquidctl_server\dist\liquidctl_server.exe"
             DestinationPath = ".\FanControl.Liquidctl.zip"
           }
           Compress-Archive @compress
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
           path: FanControl.Liquidctl.zip

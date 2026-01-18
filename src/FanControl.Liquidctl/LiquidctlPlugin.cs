@@ -12,7 +12,7 @@ namespace FanControl.LiquidCtl
 
         public void Close()
         {
-            liquidctl.Shutdown();
+            liquidctl.Dispose();
             return;
         }
 
