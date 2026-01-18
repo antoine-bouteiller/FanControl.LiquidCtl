@@ -101,7 +101,7 @@ cd src/FanControl.Liquidctl
 dotnet build
 
 # Build Python bridge
-cd src/Liquidctl.Bridge
+cd src/Liquidctl
 uv sync
 uv build
 
@@ -115,7 +115,7 @@ uv build
 FanControl.LiquidCtl/
 ├── src/
 │   ├── FanControl.Liquidctl/    # C# Plugin
-│   └── Liquidctl.Bridge/        # Python Bridge
+│   └── Liquidctl/        # Python Bridge
 ├── docs/                        # Documentation & images
 └── build.ps1                    # Build script
 ```
@@ -132,3 +132,4 @@ FanControl.LiquidCtl/
 
 - [FanControl Plugin Documentation](https://github.com/Rem0o/FanControl.Releases/wiki/Plugins)
 - [liquidctl Documentation](https://github.com/liquidctl/liquidctl)
+- [Coolercontrol](https://gitlab.com/coolercontrol/coolercontrol) most of the liquidctl wrapper code comes from it
