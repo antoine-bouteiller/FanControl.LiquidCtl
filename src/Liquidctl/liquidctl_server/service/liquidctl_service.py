@@ -5,18 +5,18 @@ from typing import Dict, List, Optional, Tuple, Union
 import liquidctl
 from liquidctl.driver.base import BaseDriver
 
-from liquidctl_bridge.models import (
+from liquidctl_server.models import (
     BadRequestException,
     DeviceStatus,
     LiquidctlException,
     StatusValue,
 )
-from liquidctl_bridge.service.config import (
+from liquidctl_server.service.config import (
     DEVICE_OPERATION_TIMEOUT,
     DEVICE_STATUS_TIMEOUT,
     MAX_INIT_RETRIES,
 )
-from liquidctl_bridge.service.executor import DeviceExecutor
+from liquidctl_server.service.executor import DeviceExecutor
 
 logger = logging.getLogger(__name__)
 

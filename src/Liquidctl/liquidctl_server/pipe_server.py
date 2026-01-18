@@ -5,7 +5,7 @@ import time
 from ctypes import wintypes
 from typing import Optional
 
-from liquidctl_bridge.models import Mode, PipeError
+from liquidctl_server.models import Mode, PipeError
 
 # --- Win32 API Definitions ---
 KERNEL32 = ctypes.windll.kernel32

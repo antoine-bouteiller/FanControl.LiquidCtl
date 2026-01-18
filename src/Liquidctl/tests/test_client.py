@@ -5,8 +5,8 @@ from ctypes import wintypes
 
 import msgspec
 
-from liquidctl_bridge.models import BridgeResponse, FixedSpeedRequest, PipeRequest
-from liquidctl_bridge.pipe_server import (
+from liquidctl_server.models import BridgeResponse, FixedSpeedRequest, PipeRequest
+from liquidctl_server.pipe_server import (
     INVALID_HANDLE_VALUE,
     KERNEL32,
     PIPE_READMODE_MESSAGE,

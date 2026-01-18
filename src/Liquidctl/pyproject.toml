@@ -1,5 +1,5 @@
 [project]
-name = "liquidctl-bridge"
+name = "liquidctl-server"
 dynamic = ["version"]
 description = ""
 authors = [{ name = "Antoine Bouteiller" }]

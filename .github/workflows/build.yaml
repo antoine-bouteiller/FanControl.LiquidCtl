@@ -49,15 +49,15 @@ jobs:
 
       - name: Build Python Bridge
         run: |
-          Set-Location .\src\Liquidctl.Bridge
+          Set-Location .\src\Liquidctl
           uv sync
           uv run ruff check
-          uv run pyinstaller --onefile ".\liquidctl_bridge\server.py" -n liquidctl_bridge --clean
+          uv run pyinstaller --onefile ".\liquidctl\server.py" -n liquidctl --clean
 
       - name: Create Artifact Archive
         run: |
           $compress = @{
-            Path            = ".\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll", ".\src\Liquidctl.Bridge\dist\liquidctl_bridge.exe"
+            Path            = ".\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll", ".\src\Liquidctl\dist\liquidctl.exe"
             DestinationPath = ".\FanControl.Liquidctl.zip"
           }
           Compress-Archive @compress

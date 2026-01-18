@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from liquidctl_bridge.models import FixedSpeedRequest, MessageStatus, SpeedKwargs
+from liquidctl_server.models import FixedSpeedRequest, MessageStatus, SpeedKwargs
 from tests.test_client import TestClient
 
 pipe_name = "LiquidCtlPipeTest"

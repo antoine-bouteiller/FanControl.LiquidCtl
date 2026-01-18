@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Optional
 
 import msgspec
 
-from liquidctl_bridge.models import (
+from liquidctl_server.models import (
     BadRequestException,
     BridgeResponse,
     FixedSpeedRequest,
@@ -14,10 +14,15 @@ from liquidctl_bridge.models import (
     PipeError,
     PipeRequest,
 )
-from liquidctl_bridge.pipe_server import Server
-from liquidctl_bridge.service import LiquidctlService
+from liquidctl_server.pipe_server import Server
+from liquidctl_server.service import LiquidctlService
 
 logger = logging.getLogger(__name__)
+
+
+def handle_handshake(service: LiquidctlService, data: Any) -> Any:
+    """Handshake to verify bridge is ready (CoolerControl pattern)."""
+    return {"shake": True}
 
 
 def handle_get_statuses(service: LiquidctlService, data: Any) -> Any:
@@ -35,6 +40,7 @@ def handle_set_fixed_speed(
 
 
 COMMAND_HANDLERS: Dict[str, Callable] = {
+    "handshake": handle_handshake,
     "get.statuses": handle_get_statuses,
     "set.fixed_speed": handle_set_fixed_speed,
 }
