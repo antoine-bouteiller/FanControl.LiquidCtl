@@ -7,7 +7,7 @@ namespace FanControl.LiquidCtl
         public string Name => "liquidctl";
 
         private readonly Dictionary<string, DeviceSensor> sensors = [];
-        private readonly LiquidctlBridgeWrapper liquidctl = new(logger);
+        private readonly LiquidctlClient liquidctl = new(logger);
         private bool _disposed;
 
         public void Close()
@@ -72,9 +72,9 @@ namespace FanControl.LiquidCtl
                 foreach (StatusValue channel in device.Status)
                 {
                     if (channel.Value == null) { continue; }
-                    DeviceSensor sensor = new(device, channel);
-                    if (!sensors.ContainsKey(sensor.Id)) { continue; }
-                    sensors[sensor.Id].Update(channel);
+                    string sensorId = Utils.CreateSensorId(device.Description, channel.Key);
+                    if (!sensors.ContainsKey(sensorId)) { continue; }
+                    sensors[sensorId].Update(channel);
                 }
             }
         }
