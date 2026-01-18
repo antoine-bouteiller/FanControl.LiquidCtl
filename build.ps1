@@ -9,7 +9,7 @@ if ($LASTEXITCODE -ne 0)
     exit 1
 }
 
-Set-Location ..\Liquidctl
+Set-Location ..\liquidctl_server
 uv run pyinstaller --onefile ".\liquidctl_server\server.py" -n liquidctl --clean
 if ($LASTEXITCODE -ne 0)
 {
@@ -23,4 +23,4 @@ Remove-Item FanControl.liquidCtl -ErrorAction SilentlyContinue
 mkdir FanControl.liquidCtl
 
 Move-Item .\src\FanControl.Liquidctl\bin\Debug\net8.0\FanControl.Liquidctl.dll .\FanControl.liquidCtl\FanControl.Liquidctl.dll
-Move-Item .\src\Liquidctl\dist\liquidctl.exe .\LiquidCtl\liquidctl_server.exe
+Move-Item .\src\liquidctl_server\dist\liquidctl_server.exe .\LiquidCtl\liquidctl_server.exe
