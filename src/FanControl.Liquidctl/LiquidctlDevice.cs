@@ -31,14 +31,15 @@ namespace FanControl.LiquidCtl
         private readonly LiquidctlClient liquidctl;
         private readonly string channelName;
 
-        public string? PairedFanSensorId { get; internal set; }
+        public string? PairedFanSensorId { get; }
 
-        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl) :
+        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl, string? pairedFanSensorId) :
             base(device, channel)
         {
             Initial = Value;
             this.liquidctl = liquidctl;
             channelName = Utils.ExtractChannelName(channel.Key);
+            PairedFanSensorId = pairedFanSensorId;
         }
 
         public void Reset()
