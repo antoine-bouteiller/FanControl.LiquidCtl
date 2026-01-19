@@ -9,6 +9,7 @@ obj
 .ruff_cache
 __pycache__
 build
-liquidctl.log
 dist
-*.spec
+
+# Claude
+.claude
