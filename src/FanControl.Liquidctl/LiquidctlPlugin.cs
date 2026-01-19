@@ -35,8 +35,13 @@ namespace FanControl.LiquidCtl
                     if (!supported_units.Contains(channel.Unit) || channel.Value == null) { continue; }
                     if (channel.Unit == "%")
                     {
-                        ControlSensor sensor = new(device, channel, liquidctl);
+
+                        string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(channel.Key);
+                        string speedSensorId = Utils.CreateSensorId(device.Description, speedChannelKey);
+                        ControlSensor sensor = new(device, channel, liquidctl, speedSensorId);
+
                         sensors[sensor.Id] = sensor;
+
                         _container.ControlSensors.Add(sensor);
                     }
                     else
@@ -46,19 +51,6 @@ namespace FanControl.LiquidCtl
                         if (channel.Unit == "rpm") { _container.FanSensors.Add(sensor); }
                         if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
                     }
-                }
-            }
-
-            foreach (DeviceSensor sensor in sensors.Values)
-            {
-                if (sensor is not ControlSensor controlSensor) { continue; }
-
-                string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(controlSensor.Channel.Key);
-                string potentialSpeedSensorId = Utils.CreateSensorId(controlSensor.Device.Description, speedChannelKey);
-
-                if (sensors.TryGetValue(potentialSpeedSensorId, out DeviceSensor? speedSensor) && speedSensor is not ControlSensor)
-                {
-                    controlSensor.PairedFanSensorId = speedSensor.Id;
                 }
             }
         }
