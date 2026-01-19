@@ -18,7 +18,7 @@ FanControl.Liquidctl Plugin (.NET 8)
     ├── LiquidctlBridgeWrapper.cs (IPC client)
     └── LiquidctlDevice.cs (Sensor/control classes)
     ↓ Named Pipes (IPC)
-liquidctl_bridge (Python executable)
+liquidctl (Python executable)
     ↓ USB/HID
 Hardware Devices (AIO coolers, smart devices)
 ```
@@ -145,7 +145,7 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 
 ### Named Pipes
 
-**Pipe Name:** `liquidctl_bridge_<random>`
+**Pipe Name:** `liquidctl_<random>`
 
 **Message Format:** MessagePack
 
@@ -213,11 +213,11 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 
 ## Python Bridge
 
-**Location:** `src/Liquidctl.Bridge/`
+**Location:** `src/Liquidctl/`
 
 **Key Files:**
-- `liquidctl_bridge/__main__.py` - Entry point
-- `liquidctl_bridge/bridge.py` - Main bridge logic
+- `liquidctl/__main__.py` - Entry point
+- `liquidctl/bridge.py` - Main bridge logic
 - `pyproject.toml` - Poetry configuration
 
 **Important:**
@@ -296,7 +296,7 @@ public void Update()
 
 **Python Bridge Testing:**
 ```bash
-cd src/Liquidctl.Bridge
+cd src/Liquidctl
 uv run pytest tests/
 ```
 
@@ -310,7 +310,7 @@ dotnet build
 
 **Python Bridge:**
 ```bash
-cd src/Liquidctl.Bridge
+cd src/Liquidctl
 uv sync
 uv build
 ```
@@ -377,12 +377,11 @@ src/FanControl.Liquidctl/
 ├── LiquidctlBridgeWrapper.cs       # IPC client
 ├── LiquidctlDevice.cs              # Sensor classes
 ├── ref/
-│   ├── FanControl.Plugins.dll      # Plugin SDK
-│   └── Newtonsoft.Json.dll         # JSON library
+│   └── FanControl.Plugins.dll      # Plugin SDK
 └── FanControl.Liquidctl.csproj
 
-src/Liquidctl.Bridge/
-├── liquidctl_bridge/
+src/Liquidctl/
+├── liquidctl/
 │   ├── __main__.py                 # Entry point
 │   └── bridge.py                   # Bridge logic
 ├── tests/

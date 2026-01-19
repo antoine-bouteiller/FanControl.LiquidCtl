@@ -1,92 +1,65 @@
 using FanControl.Plugins;
-using System.Text.Json.Serialization;
 
 namespace FanControl.LiquidCtl
 {
-	public class StatusValue
-	{
-		[JsonPropertyName("key")]
-		public required string Key { get; set; }
+    public class DeviceSensor : IPluginSensor
+    {
+        public string Id => Utils.CreateSensorId(Device.Description, Channel.Key);
+        public virtual string Name => Utils.CreateSensorName(Device.Description, Channel.Key);
+        public float? Value => (float?)Channel.Value;
 
-		[JsonPropertyName("value")]
-		public double? Value { get; set; }
+        public void Update() { }
 
-		[JsonPropertyName("unit")]
-		public required string Unit { get; set; }
-	}
+        internal void Update(StatusValue status)
+        {
+            Channel = status;
+        }
 
-	public class DeviceStatus
-	{
-		[JsonPropertyName("id")]
-		public required int Id { get; set; }
+        internal DeviceStatus Device { get; }
+        internal StatusValue Channel { get; set; }
 
-		[JsonPropertyName("bus")]
-		public required string Bus { get; set; }
+        internal DeviceSensor(DeviceStatus device, StatusValue channel)
+        {
+            Device = device;
+            Channel = channel;
+        }
+    }
 
-		[JsonPropertyName("address")]
-		public required string Address { get; set; }
+    public class ControlSensor : DeviceSensor, IPluginControlSensor2
+    {
+        internal float? Initial { get; }
+        private readonly LiquidctlClient liquidctl;
+        private readonly string channelName;
 
-		[JsonPropertyName("description")]
-		public required string Description { get; set; }
+        public string? PairedFanSensorId { get; internal set; }
 
-		[JsonPropertyName("status")]
-		public required IReadOnlyCollection<StatusValue> Status { get; init; }
-	}
+        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl) :
+            base(device, channel)
+        {
+            Initial = Value;
+            this.liquidctl = liquidctl;
+            channelName = Utils.ExtractChannelName(channel.Key);
+        }
 
-	public class DeviceSensor : IPluginSensor
-	{
-		public string Id => $"{Device.Description}/{Channel.Key}".Replace(" ", "", StringComparison.Ordinal);
-		public string Name => $"{Device.Description}: {Channel.Key}";
-		public float? Value => (float?)Channel.Value;
+        public void Reset()
+        {
+            if (Initial != null)
+            {
+                Set(Initial.GetValueOrDefault());
+            }
+        }
 
-		public void Update() { }
-		internal void Update(StatusValue status)
-		{
-			Channel = status;
-		}
-
-		internal DeviceStatus Device { get; }
-		internal StatusValue Channel { get; set; }
-		internal DeviceSensor(DeviceStatus device, StatusValue channel)
-		{
-			Device = device;
-			Channel = channel;
-		}
-	}
-
-	public class ControlSensor : DeviceSensor, IPluginControlSensor2
-	{
-		internal float? Initial { get; }
-		private readonly LiquidctlBridgeWrapper liquidctl;
-
-		public string? PairedFanSensorId { get; internal set; }
-
-		internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlBridgeWrapper liquidctl) :
-			base(device, channel)
-		{
-			Initial = Value;
-			this.liquidctl = liquidctl;
-		}
-
-		public void Reset()
-		{
-			if (Initial != null)
-			{
-				Set(Initial.GetValueOrDefault());
-			}
-		}
-
-		public void Set(float val)
-		{
-			liquidctl.SetFixedSpeed(new FixedSpeedRequest
-			{
-				DeviceId = Device.Id,
-				SpeedKwargs = new SpeedKwargs
-				{
-					Duty = (int)Math.Round(val),
-					Channel = Channel.Key.Replace(" ", "", StringComparison.Ordinal)
-				}
-			});
-		}
-	}
+        public void Set(float val)
+        {
+            liquidctl.SetFixedSpeed(new FixedSpeedRequest
+            {
+                DeviceId = Device.Id,
+                SpeedKwargs = new SpeedKwargs
+                {
+                    Duty = (int)Math.Round(val),
+                    Channel = channelName
+                }
+            });
+        }
+    }
 }

@@ -25,5 +25,4 @@
       <HintPath>.\ref\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>

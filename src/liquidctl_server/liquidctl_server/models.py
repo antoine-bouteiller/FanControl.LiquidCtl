@@ -1,6 +1,7 @@
-from typing import List, Optional
-import msgspec
 from enum import Enum, IntEnum
+from typing import List, Optional, Union
+
+import msgspec
 
 
 class StatusValue(msgspec.Struct):
@@ -29,6 +30,12 @@ class PipeRequest(msgspec.Struct):
     data: Optional[FixedSpeedRequest] = None
 
 
+class BridgeResponse(msgspec.Struct):
+    status: MessageStatus
+    data: Optional[Union[List["DeviceStatus"], str]] = None
+    error: Optional[str] = None
+
+
 class LiquidctlException(Exception):
     pass
 
@@ -40,8 +47,6 @@ class BadRequestException(Exception):
 class DeviceStatus(msgspec.Struct):
     id: int
     description: str
-    bus: str
-    address: str
     status: List[StatusValue]
 
 
