@@ -101,7 +101,7 @@ cd src/FanControl.Liquidctl
 dotnet build
 
 # Build Python bridge
-cd src/Liquidctl
+cd src/liquidctl_server
 uv sync
 uv build
 
@@ -115,9 +115,8 @@ uv build
 FanControl.LiquidCtl/
 ├── src/
 │   ├── FanControl.Liquidctl/    # C# Plugin
-│   └── Liquidctl/        # Python Bridge
-├── docs/                        # Documentation & images
-└── build.ps1                    # Build script
+│   └── liquidctl_server/        # Python Server
+└── docs/                        # Documentation & images
 ```
 
 ## Contributing

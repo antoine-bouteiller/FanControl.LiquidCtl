@@ -81,7 +81,7 @@ jobs:
           Compress-Archive @compress
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
           path: FanControl.Liquidctl.zip
