@@ -71,7 +71,7 @@ namespace FanControl.LiquidCtl
 
                 _bridgeProcess = new Process
                 {
-                    StartInfo = new ProcessStartInfo(_exePath, "--log-level INFO")
+                    StartInfo = new ProcessStartInfo(_exePath, "--log-level ERROR")
                     {
                         UseShellExecute = false,
                         CreateNoWindow = true,
