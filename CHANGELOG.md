@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v2.0.0) (2026-01-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* rewrite python server and c# client for better performance and robustness ([#46](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/46))
+
+### 🎉 New Features
+
+* rewrite python server and c# client for better performance and robustness ([#46](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/46)) ([5502405](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/55024056d7914105eaa928a2ffde3779f4350a6b))
+
+
+### 🐛 Bug Fixes
+
+* correctly link speed sensor to control at first init ([74f903c](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/74f903c64a3f0ed45f07247227e2937041ca1e5c))
+
 ## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
 
 
