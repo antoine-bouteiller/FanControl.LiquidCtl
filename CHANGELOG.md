@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v1.2.0) (2026-01-19)
+
+
+### 🎉 New Features
+
+* improve pipe server ([1e736d8](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/1e736d805afe4c275d7a09434066eb335d6bd909))
+
 ## [1.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.0.3...v1.1.0) (2025-11-24)
 
 
