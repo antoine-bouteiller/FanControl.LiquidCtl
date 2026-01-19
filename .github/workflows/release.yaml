@@ -26,10 +26,13 @@ jobs:
     uses: ./.github/workflows/build.yaml
 
   upload:
-    needs: build
+    needs: [release-please, build]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: windows-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v7
         with:
