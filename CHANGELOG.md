@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.0.0...v2.0.1) (2026-01-21)
+
+
+### 📚 Documentation
+
+* update dev requirements in readme ([96162fa](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/96162faa9a65c6cf5067af4c0e989e419a28600a))
+
 ## [2.0.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v2.0.0) (2026-01-19)
 
 
