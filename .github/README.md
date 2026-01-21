@@ -17,7 +17,7 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - NZXT Kraken X63
 - NZXT Smart Device V2
 
-_Note: Should work with any liquidctl-supported device, but these are the ones we've specifically tested._
+_Note: Should work with any liquidctl-supported device, but these are the ones I've specifically tested._
 
 ## Prerequisites
 
@@ -91,7 +91,7 @@ The plugin consists of two main components:
 ### Prerequisites
 
 - .NET 8 SDK
-- Python 3.8+ with Poetry
+- [uv](https://github.com/astral-sh/uv)
 
 ### Building
 
@@ -104,9 +104,6 @@ dotnet build
 cd src/liquidctl_server
 uv sync
 uv build
-
-# Complete release build
-.\build.ps1
 ```
 
 ### Repository Structure
