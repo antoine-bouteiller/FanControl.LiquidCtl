@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = ""
 authors = [{ name = "Antoine Bouteiller" }]
 requires-python = ">=3.11,<3.14"
-dependencies = ["liquidctl>=1.15.0,<2.0.0", "pywin32>=311,<312", "msgspec>=0.20.0,<0.21.0"]
+dependencies = ["liquidctl @ git+https://github.com/liquidctl/liquidctl.git@d6568b12f5135d21d609396dbb27fef25c790bd9", "pywin32>=311,<312", "msgspec>=0.20.0,<0.21.0"]
 
 [dependency-groups]
 dev = ["ruff>=0.14.0,<0.15.0", "nuitka>=2.5.0,<3.0.0"]
@@ -16,3 +16,6 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 path = "../../.release-please-manifest.json"
 pattern = '\{\s*"\."\s*:\s*"(?P<version>[^"]+)"\s*\}'
+
+[tool.hatch.metadata]
+allow-direct-references = true
