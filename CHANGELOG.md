@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.0.0...v2.1.0) (2026-02-03)
+
+
+### 🎉 New Features
+
+* **python server:** use liquidctl github version to support newer devices ([#65](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/65)) ([fcc0bdf](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/fcc0bdfbbca4faef2483c2d4b320119f802f8067))
+
+
+### 📚 Documentation
+
+* update dev requirements in readme ([96162fa](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/96162faa9a65c6cf5067af4c0e989e419a28600a))
+
 ## [2.0.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v1.1.0...v2.0.0) (2026-01-19)
 
 
