@@ -10,6 +10,3 @@ obj
 __pycache__
 build
 dist
-
-# Claude
-.claude
