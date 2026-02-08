@@ -57,13 +57,22 @@ jobs:
           Set-Location .\src\FanControl.Liquidctl
           dotnet build -c Release
 
+      - name: Get Version
+        id: get-version
+        run: |
+          $manifest = Get-Content ".release-please-manifest.json" | ConvertFrom-Json
+          $version = $manifest."."
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
       - name: Build Python Bridge
         run: |
           Set-Location .\src\liquidctl_server
           uv sync
           uv run ruff check
           uv run python -m nuitka `
-            --standalone `
+            --onefile `
+            --onefile-tempdir-spec="{CACHE_DIR}/FanControl.LiquidCtl/${{ steps.get-version.outputs.version }}" `
+            --msvc=latest `
             --output-filename=liquidctl_server.exe `
             --output-dir=dist `
             --remove-output `
@@ -71,12 +80,11 @@ jobs:
             --windows-console-mode=disable `
             --windows-icon-from-ico=liquidctl.ico `
             .\liquidctl_server\server.py
-          Rename-Item -Path .\dist\server.dist -NewName liquidctl_server
 
       - name: Create Artifact Archive
         run: |
           $compress = @{
-            Path            = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll", ".\src\liquidctl_server\dist\liquidctl_server"
+            Path            = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll", ".\src\liquidctl_server\dist\liquidctl_server.exe"
             DestinationPath = ".\FanControl.Liquidctl.zip"
           }
           Compress-Archive @compress
