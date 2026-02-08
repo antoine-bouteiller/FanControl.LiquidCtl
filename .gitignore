@@ -10,3 +10,6 @@ obj
 __pycache__
 build
 dist
+
+# Claude
+settings.local.json

@@ -186,47 +186,58 @@ class Server(Base):
         if self.server_thread.is_alive():
             self.server_thread.join(timeout=1.0)
 
+    def _create_pipe(self) -> Optional[int]:
+        """Create and return a named pipe handle, or None on failure."""
+        nph = KERNEL32.CreateNamedPipeW(
+            self.pipe_path,
+            PIPE_ACCESS_DUPLEX,
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+            PIPE_UNLIMITED_INSTANCES,
+            65536,
+            65536,
+            0,
+            None,
+        )
+
+        if nph == INVALID_HANDLE_VALUE:
+            logger.error(f"Failed CreateNamedPipe. Err: {KERNEL32.GetLastError()}")
+            return None
+        return nph
+
+    def _wait_for_client(self, nph: int) -> bool:
+        """Wait for client connection. Returns True if connected."""
+        logger.debug("Waiting for client connection...")
+        connected = KERNEL32.ConnectNamedPipe(nph, None)
+
+        if not connected and KERNEL32.GetLastError() == ERROR_PIPE_CONNECTED:
+            connected = True
+
+        return connected or KERNEL32.GetLastError() == ERROR_PIPE_BUSY
+
+    def _handle_client_session(self) -> None:
+        """Handle the client session until disconnection or shutdown."""
+        while not self.shutdown_event.is_set():
+            if not self.canread():
+                if KERNEL32.GetLastError() == ERROR_BROKEN_PIPE:
+                    break
+                time.sleep(0.1)
+            else:
+                time.sleep(0.1)
+
     def serverentry(self) -> None:
         logger.info(f"Starting Named Pipe server thread for: {self.name}")
 
         while not self.shutdown_event.is_set():
-            nph = KERNEL32.CreateNamedPipeW(
-                self.pipe_path,
-                PIPE_ACCESS_DUPLEX,
-                PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-                PIPE_UNLIMITED_INSTANCES,
-                65536,  # Out buffer
-                65536,  # In buffer
-                0,  # Default timeout
-                None,
-            )
-
-            if nph == INVALID_HANDLE_VALUE:
-                logger.error(f"Failed CreateNamedPipe. Err: {KERNEL32.GetLastError()}")
+            nph = self._create_pipe()
+            if nph is None:
                 time.sleep(2)
                 continue
 
-            logger.debug("Waiting for client connection...")
-            connected = KERNEL32.ConnectNamedPipe(nph, None)
-
-            if not connected and KERNEL32.GetLastError() == ERROR_PIPE_CONNECTED:
-                connected = True
-
-            if connected or KERNEL32.GetLastError() == ERROR_PIPE_BUSY:
+            if self._wait_for_client(nph):
                 logger.info("Client connected")
-
                 with self._io_lock:
                     self.handle = nph
-
-                while not self.shutdown_event.is_set():
-                    if not self.canread():
-                        if KERNEL32.GetLastError() == ERROR_BROKEN_PIPE:
-                            break
-
-                        time.sleep(0.1)
-                    else:
-                        time.sleep(0.1)
-
+                self._handle_client_session()
                 logger.info("Client disconnected or shutdown triggered.")
                 self.close_connection()
             else:

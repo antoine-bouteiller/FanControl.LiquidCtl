@@ -6,14 +6,13 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write # to create release commit (google-github-actions/release-please-action)
-  pull-requests: write # to create release PR (google-github-actions/release-please-action)
-  issues: write # to add labels (google-github-actions/release-please-action)
-
 jobs:
   release-please:
     runs-on: windows-latest
+    permissions:
+      contents: write # to create release commit (google-github-actions/release-please-action)
+      pull-requests: write # to create release PR (google-github-actions/release-please-action)
+      issues: write # to add labels (google-github-actions/release-please-action)
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -30,6 +29,8 @@ jobs:
     needs: [release-please, build]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: windows-latest
+    permissions:
+      contents: write # to upload release artifact
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

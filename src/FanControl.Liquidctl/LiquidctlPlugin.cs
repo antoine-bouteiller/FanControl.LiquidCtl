@@ -13,7 +13,6 @@ namespace FanControl.LiquidCtl
         public void Close()
         {
             liquidctl.Dispose();
-            return;
         }
 
         public void Initialize()
@@ -26,33 +25,48 @@ namespace FanControl.LiquidCtl
             ArgumentNullException.ThrowIfNull(_container);
 
             IReadOnlyCollection<DeviceStatus> detected_devices = liquidctl.GetStatuses();
-            List<string> supported_units = ["°C", "rpm", "%"];
 
             foreach (DeviceStatus device in detected_devices)
             {
                 foreach (StatusValue channel in device.Status)
                 {
-                    if (!supported_units.Contains(channel.Unit) || channel.Value == null) { continue; }
-                    if (channel.Unit == "%")
-                    {
-
-                        string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(channel.Key);
-                        string speedSensorId = Utils.CreateSensorId(device.Description, speedChannelKey);
-                        ControlSensor sensor = new(device, channel, liquidctl, speedSensorId);
-
-                        sensors[sensor.Id] = sensor;
-
-                        _container.ControlSensors.Add(sensor);
-                    }
-                    else
-                    {
-                        DeviceSensor sensor = new(device, channel);
-                        sensors[sensor.Id] = sensor;
-                        if (channel.Unit == "rpm") { _container.FanSensors.Add(sensor); }
-                        if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
-                    }
+                    ProcessChannel(device, channel, _container);
                 }
             }
+        }
+
+        private void ProcessChannel(DeviceStatus device, StatusValue channel, IPluginSensorsContainer container)
+        {
+            if (channel.Value == null) { return; }
+
+            switch (channel.Unit)
+            {
+                case "%":
+                    AddControlSensor(device, channel, container);
+                    break;
+                case "rpm":
+                    AddReadSensor(device, channel, container.FanSensors);
+                    break;
+                case "°C":
+                    AddReadSensor(device, channel, container.TempSensors);
+                    break;
+            }
+        }
+
+        private void AddControlSensor(DeviceStatus device, StatusValue channel, IPluginSensorsContainer container)
+        {
+            string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(channel.Key);
+            string speedSensorId = Utils.CreateSensorId(device.Description, speedChannelKey);
+            ControlSensor sensor = new(device, channel, liquidctl, speedSensorId);
+            sensors[sensor.Id] = sensor;
+            container.ControlSensors.Add(sensor);
+        }
+
+        private void AddReadSensor(DeviceStatus device, StatusValue channel, List<IPluginSensor> sensorList)
+        {
+            DeviceSensor sensor = new(device, channel);
+            sensors[sensor.Id] = sensor;
+            sensorList.Add(sensor);
         }
 
 

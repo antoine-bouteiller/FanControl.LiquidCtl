@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from liquidctl_server.models import FixedSpeedRequest, MessageStatus, SpeedKwargs
+from liquidctl_server.models import FixedSpeedRequest, LiquidctlException, MessageStatus, SpeedKwargs
 from tests.test_client import TestClient
 
 pipe_name = "LiquidCtlPipeTest"
@@ -35,7 +35,7 @@ def main():
                     ),
                 )
         else:
-            raise Exception(f"Request failed: {res.error if res else 'No response'}")
+            raise LiquidctlException(f"Request failed: {res.error if res else 'No response'}")
 
 
 if __name__ == "__main__":
