@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.1.0...v2.2.0) (2026-02-08)
+
+
+### 🎉 New Features
+
+* **python-serverr:** build with MSVC and specify tempdir to reduce risque of AV false positive ([#71](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/71)) ([52737c5](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/52737c5039c975ed22bde07344af839997775270))
+
 ## [2.1.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.0.0...v2.1.0) (2026-02-03)
 
 
