@@ -169,7 +169,7 @@ namespace FanControl.LiquidCtl
         {
             foreach (var p in Process.GetProcessesByName("liquidctl_server"))
             {
-                try { p.Kill(); p.WaitForExit(1000); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { } finally { p.Dispose(); }
+                try { p.Kill(); p.WaitForExit(1000); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ } finally { p.Dispose(); }
             }
         }
 
@@ -182,7 +182,7 @@ namespace FanControl.LiquidCtl
 
                 if (_bridgeProcess is { HasExited: false })
                 {
-                    try { _bridgeProcess.Kill(); _bridgeProcess.WaitForExit(BridgeConfig.ShutdownTimeoutMs); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { }
+                    try { _bridgeProcess.Kill(); _bridgeProcess.WaitForExit(BridgeConfig.ShutdownTimeoutMs); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ }
                 }
                 _bridgeProcess?.Dispose();
                 _bridgeProcess = null;

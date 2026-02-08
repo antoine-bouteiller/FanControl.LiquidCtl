@@ -18,8 +18,9 @@ class _DeviceJob:
             return
         try:
             result = self.fn(**self.kwargs)
-        except BaseException as exc:
+        except Exception as exc:
             self.future.set_exception(exc)
+            raise
         else:
             self.future.set_result(result)
 
@@ -33,8 +34,9 @@ def _queue_worker(dev_queue: queue.SimpleQueue) -> None:
                 return  # Shutdown signal
             device_job.run()
             del device_job
-    except BaseException as exc:
+    except Exception as exc:
         sys.stderr.write(f"Exception in device worker: {exc}\n")
+        raise
 
 
 class DeviceExecutor:
