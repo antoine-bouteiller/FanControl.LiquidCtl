@@ -2,6 +2,18 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
+  "schedule": ["every weekend"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^src/liquidctl_server/pyproject\\.toml$"],
+      "matchStrings": ["liquidctl\\s*@\\s*git\\+https://github\\.com/(?<depName>[^.]+)\\.git@(?<currentDigest>[a-f0-9]+)"],
+      "datasourceTemplate": "git-refs",
+      "packageNameTemplate": "https://github.com/liquidctl/liquidctl",
+      "currentValueTemplate": "main",
+      "depTypeTemplate": "dependencies"
+    }
+  ],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
@@ -11,6 +23,11 @@
       "matchDepTypes": ["dependencies"],
       "semanticCommitType": "deps",
       "semanticCommitScope": null
+    },
+    {
+      "matchDatasources": ["git-refs"],
+      "matchUpdateTypes": ["digest"],
+      "commitBody": ["[Compare changes](https://github.com/liquidctl/liquidctl/compare/{{currentDigest}}...{{newDigest}})"]
     }
   ]
 }
