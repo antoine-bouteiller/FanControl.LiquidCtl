@@ -43,4 +43,4 @@ jobs:
       - name: Upload Release Artifact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ needs.release-please.outputs.tag_name }} ./FanControl.Liquidctl.zip
+        run: gh release upload ${{ needs.release-please.outputs.tag_name }} ./FanControl.Liquidctl.zip ./FanControl.Liquidctl-standalone.zip
