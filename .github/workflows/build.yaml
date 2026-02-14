@@ -109,7 +109,7 @@ jobs:
 
           Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\onefile\liquidctl_server.exe" -DestinationPath ".\FanControl.Liquidctl.zip"
 
-          Rename-Item ".\src\liquidctl_server\dist\standalone\liquidctl_server.dist" "liquidctl_server"
+          Rename-Item ".\src\liquidctl_server\dist\standalone\server.dist" "liquidctl_server"
           Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\standalone\liquidctl_server" -DestinationPath ".\FanControl.Liquidctl-standalone.zip"
 
       - name: Upload Build Artifacts
