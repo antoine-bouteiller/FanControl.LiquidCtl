@@ -69,29 +69,27 @@ jobs:
           Set-Location .\src\liquidctl_server
           uv sync
           uv run ruff check
+
           uv run python -m nuitka `
-            --onefile `
-            --onefile-tempdir-spec="{CACHE_DIR}/FanControl.LiquidCtl/${{ steps.get-version.outputs.version }}" `
-            --msvc=latest `
+            --standalone `
+            --output-dir=dist/standalone `
             --output-filename=liquidctl_server.exe `
-            --output-dir=dist `
-            --remove-output `
             --assume-yes-for-downloads `
             --windows-console-mode=disable `
             --windows-icon-from-ico=liquidctl.ico `
             .\liquidctl_server\server.py
 
-      - name: Create Artifact Archive
+      - name: Create Artifact Archives
         run: |
-          $compress = @{
-            Path            = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll", ".\src\liquidctl_server\dist\liquidctl_server.exe"
-            DestinationPath = ".\FanControl.Liquidctl.zip"
-          }
-          Compress-Archive @compress
+          $dll = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll"
+
+          Rename-Item ".\src\liquidctl_server\dist\standalone\server.dist" "liquidctl_server"
+          Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\standalone\liquidctl_server" -DestinationPath ".\FanControl.Liquidctl.zip"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
-          path: FanControl.Liquidctl.zip
+          path: |
+            FanControl.Liquidctl.zip
           retention-days: 30

@@ -11,7 +11,13 @@ namespace FanControl.LiquidCtl
     public sealed class LiquidctlClient(IPluginLogger logger) : IDisposable
     {
         private readonly IPluginLogger _logger = logger;
-        private readonly string _exePath = Path.Combine(Path.GetDirectoryName(typeof(LiquidctlClient).Assembly.Location) ?? string.Empty, "liquidctl_server.exe");
+        private readonly string _exePath = ResolveExePath();
+
+        private static string ResolveExePath()
+        {
+            var baseDir = Path.GetDirectoryName(typeof(LiquidctlClient).Assembly.Location) ?? string.Empty;
+            return Path.Combine(baseDir, "liquidctl_server", "liquidctl_server.exe");
+        }
         private const string PipeName = "LiquidCtlPipe";
 
         private Process? _bridgeProcess;
