@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.1](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.2.0...v2.2.1) (2026-02-17)
+
+
+### 🐛 Bug Fixes
+
+* **python_server:** use standalone build to prevent AV issues ([#76](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/76)) ([50b861d](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/50b861d91f37f46a78eee10fc34bcb70ebb651b8))
+
+
+### 📦 Dependency Updates
+
+* bump liquidctl/liquidctl to f9f0025 ([#82](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/issues/82)) ([be457a5](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/commit/be457a5af60e323f895c07185eea7a3cadfd778e))
+
 ## [2.2.0](https://github.com/antoine-bouteiller/FanControl.LiquidCtl/compare/v2.1.0...v2.2.0) (2026-02-08)
 
 
