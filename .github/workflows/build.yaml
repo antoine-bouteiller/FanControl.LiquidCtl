@@ -70,47 +70,21 @@ jobs:
           uv sync
           uv run ruff check
 
-          $serverDir = Resolve-Path "."
-          $commonArgs = @(
-            "--msvc=latest",
-            "--output-filename=liquidctl_server.exe",
-            "--remove-output",
-            "--assume-yes-for-downloads",
-            "--windows-console-mode=disable",
-            "--windows-icon-from-ico=liquidctl.ico",
-            ".\liquidctl_server\server.py"
-          )
-
-          $onefileProc = Start-Process -FilePath "uv" -ArgumentList (@(
-            "run", "python", "-m", "nuitka",
-            "--onefile",
-            "--onefile-tempdir-spec={CACHE_DIR}/FanControl.LiquidCtl/${{ steps.get-version.outputs.version }}",
-            "--output-dir=dist/onefile"
-          ) + $commonArgs) -WorkingDirectory $serverDir -NoNewWindow -PassThru -RedirectStandardOutput onefile_stdout.log -RedirectStandardError onefile_stderr.log
-
-          $standaloneProc = Start-Process -FilePath "uv" -ArgumentList (@(
-            "run", "python", "-m", "nuitka",
-            "--standalone",
-            "--output-dir=dist/standalone"
-          ) + $commonArgs) -WorkingDirectory $serverDir -NoNewWindow -PassThru -RedirectStandardOutput standalone_stdout.log -RedirectStandardError standalone_stderr.log
-
-          $onefileProc.WaitForExit()
-          $standaloneProc.WaitForExit()
-
-          Get-Content onefile_stderr.log
-          Get-Content standalone_stderr.log
-
-          if ($onefileProc.ExitCode -ne 0) { throw "Onefile build failed with exit code $($onefileProc.ExitCode)" }
-          if ($standaloneProc.ExitCode -ne 0) { throw "Standalone build failed with exit code $($standaloneProc.ExitCode)" }
+          uv run python -m nuitka `
+            --standalone `
+            --output-dir=dist/standalone `
+            --output-filename=liquidctl_server.exe `
+            --assume-yes-for-downloads `
+            --windows-console-mode=disable `
+            --windows-icon-from-ico=liquidctl.ico `
+            .\liquidctl_server\server.py
 
       - name: Create Artifact Archives
         run: |
           $dll = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll"
 
-          Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\onefile\liquidctl_server.exe" -DestinationPath ".\FanControl.Liquidctl.zip"
-
           Rename-Item ".\src\liquidctl_server\dist\standalone\server.dist" "liquidctl_server"
-          Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\standalone\liquidctl_server" -DestinationPath ".\FanControl.Liquidctl-standalone.zip"
+          Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\standalone\liquidctl_server" -DestinationPath ".\FanControl.Liquidctl.zip"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v6
@@ -118,5 +92,4 @@ jobs:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
           path: |
             FanControl.Liquidctl.zip
-            FanControl.Liquidctl-standalone.zip
           retention-days: 30

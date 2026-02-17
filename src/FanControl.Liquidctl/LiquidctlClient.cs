@@ -16,9 +16,7 @@ namespace FanControl.LiquidCtl
         private static string ResolveExePath()
         {
             var baseDir = Path.GetDirectoryName(typeof(LiquidctlClient).Assembly.Location) ?? string.Empty;
-            var standalonePath = Path.Combine(baseDir, "liquidctl_server", "liquidctl_server.exe");
-            if (File.Exists(standalonePath)) return standalonePath;
-            return Path.Combine(baseDir, "liquidctl_server.exe");
+            return Path.Combine(baseDir, "liquidctl_server", "liquidctl_server.exe");
         }
         private const string PipeName = "LiquidCtlPipe";
 
