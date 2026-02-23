@@ -208,7 +208,7 @@ pyenv local 3.11.6         # Set for current directory
 echo "3.11.6" > .python-version
 ```
 
-## Package __init__.py
+## Package **init**.py
 
 ```python
 # src/myproject/__init__.py
@@ -397,34 +397,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ['3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
 
-    - name: Run tests
-      run: |
-        pytest --cov --cov-report=xml
+      - name: Run tests
+        run: |
+          pytest --cov --cov-report=xml
 
-    - name: Type check
-      run: mypy src
+      - name: Type check
+        run: mypy src
 
-    - name: Lint
-      run: |
-        black --check src tests
-        ruff check src tests
+      - name: Lint
+        run: |
+          black --check src tests
+          ruff check src tests
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v3
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
 ```
 
 ## Pre-commit Hooks

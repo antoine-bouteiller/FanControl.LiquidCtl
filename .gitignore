@@ -13,3 +13,6 @@ dist
 
 # Claude
 settings.local.json
+
+# node
+node_modules

@@ -51,6 +51,7 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 - Timeout handling (default: 5 seconds)
 
 **Key Methods:**
+
 - `Init()` - Start bridge process, establish connection
 - `GetStatuses()` - Poll all device states (called in Update())
 - `SetSpeed(device, channel, duty)` - Send control command to device
@@ -61,11 +62,13 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 **File:** `src/FanControl.Liquidctl/LiquidctlDevice.cs`
 
 **DeviceSensor:**
+
 - Base class for read-only sensors (temperature, RPM)
 - Implements IPluginSensor
 - Updates value from status polling
 
 **ControlSensor:**
+
 - Extends DeviceSensor
 - Implements IPluginControlSensor2
 - Allows user to set values (pump/fan duty)
@@ -74,6 +77,7 @@ if (channel.Unit == "°C") { _container.TempSensors.Add(sensor); }
 ## Data Models
 
 ### DeviceStatus
+
 ```csharp
 public class DeviceStatus
 {
@@ -83,6 +87,7 @@ public class DeviceStatus
 ```
 
 ### StatusValue
+
 ```csharp
 public class StatusValue
 {
@@ -97,11 +102,13 @@ public class StatusValue
 **Location:** `src/Liquidctl/`
 
 **Key Files:**
+
 - `liquidctl/__main__.py` - Entry point
 - `liquidctl/bridge.py` - Main bridge logic
 - `pyproject.toml` - uv configuration
 
 **Key behaviors:**
+
 - Uses PyInstaller to create standalone executable
 - Must handle device initialization (liquidctl requires init before status)
 - Strips "duty" from control channel names via `_formatString()`

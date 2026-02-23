@@ -30,7 +30,10 @@ def handle_set_fixed_speed(
     if data is None:
         raise BadRequestException("Missing data for set.fixed_speed")
 
-    speed_kwargs = {"channel": data.speed_kwargs.channel, "duty": data.speed_kwargs.duty}
+    speed_kwargs = {
+        "channel": data.speed_kwargs.channel,
+        "duty": data.speed_kwargs.duty,
+    }
     return service.set_fixed_speed(data.device_id, speed_kwargs)
 
 
@@ -88,7 +91,9 @@ def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
             try:
                 pipe.write(response_bytes)
             except PipeError:
-                logger.debug("Client disconnected during response write, discarding response")
+                logger.debug(
+                    "Client disconnected during response write, discarding response"
+                )
                 continue
         else:
             time.sleep(0.05)
@@ -97,7 +102,9 @@ def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Liquidctl Bridge Server")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
-    parser.add_argument("--test", default=False, action="store_true", help="Running as test")
+    parser.add_argument(
+        "--test", default=False, action="store_true", help="Running as test"
+    )
     args = parser.parse_args()
 
     setup_logging(args.log_level)

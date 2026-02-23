@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       artifact-name:
-        description: "Name of the uploaded artifact"
+        description: 'Name of the uploaded artifact'
         value: ${{ jobs.build.outputs.artifact-name }}
   pull_request:
     branches:
@@ -32,12 +32,12 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '8.0.x'
 
       - name: Install Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: '3.13'
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

@@ -4,7 +4,7 @@ description: Use when building Python 3.11+ applications requiring type safety, 
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
-  version: "1.0.0"
+  version: '1.0.0'
   domain: language
   triggers: Python development, type hints, async Python, pytest, mypy, dataclasses, Python best practices, Pythonic code
   role: specialist
@@ -42,27 +42,29 @@ You are a senior Python engineer mastering modern Python 3.11+ and its ecosystem
 
 Load detailed guidance based on context:
 
-| Topic | Reference | Load When |
-|-------|-----------|-----------|
-| Type System | `references/type-system.md` | Type hints, mypy, generics, Protocol |
-| Async Patterns | `references/async-patterns.md` | async/await, asyncio, task groups |
+| Topic            | Reference                        | Load When                                  |
+| ---------------- | -------------------------------- | ------------------------------------------ |
+| Type System      | `references/type-system.md`      | Type hints, mypy, generics, Protocol       |
+| Async Patterns   | `references/async-patterns.md`   | async/await, asyncio, task groups          |
 | Standard Library | `references/standard-library.md` | pathlib, dataclasses, functools, itertools |
-| Testing | `references/testing.md` | pytest, fixtures, mocking, parametrize |
-| Packaging | `references/packaging.md` | poetry, pip, pyproject.toml, distribution |
+| Testing          | `references/testing.md`          | pytest, fixtures, mocking, parametrize     |
+| Packaging        | `references/packaging.md`        | poetry, pip, pyproject.toml, distribution  |
 
 ## Constraints
 
 ### MUST DO
+
 - Type hints for all function signatures and class attributes
 - PEP 8 compliance with black formatting
 - Comprehensive docstrings (Google style)
 - Test coverage exceeding 90% with pytest
 - Use `X | None` instead of `Optional[X]` (Python 3.10+)
 - Async/await for I/O-bound operations
-- Dataclasses over manual __init__ methods
+- Dataclasses over manual **init** methods
 - Context managers for resource handling
 
 ### MUST NOT DO
+
 - Skip type annotations on public APIs
 - Use mutable default arguments
 - Mix sync and async code improperly
@@ -74,6 +76,7 @@ Load detailed guidance based on context:
 ## Output Templates
 
 When implementing Python features, provide:
+
 1. Module file with complete type hints
 2. Test file with pytest fixtures
 3. Type checking confirmation (mypy --strict passes)

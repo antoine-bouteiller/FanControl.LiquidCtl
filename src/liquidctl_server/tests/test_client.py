@@ -23,9 +23,13 @@ OPEN_EXISTING = 0x00000003
 
 # Define CreateFileW (Unicode)
 KERNEL32.CreateFileW.argtypes = [
-    wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-    wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD,
-    wintypes.HANDLE
+    wintypes.LPCWSTR,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.LPVOID,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.HANDLE,
 ]
 KERNEL32.CreateFileW.restype = wintypes.HANDLE
 
@@ -34,11 +38,12 @@ KERNEL32.SetNamedPipeHandleState.argtypes = [
     wintypes.HANDLE,
     ctypes.POINTER(wintypes.DWORD),
     ctypes.POINTER(wintypes.DWORD),
-    ctypes.POINTER(wintypes.DWORD)
+    ctypes.POINTER(wintypes.DWORD),
 ]
 KERNEL32.SetNamedPipeHandleState.restype = wintypes.BOOL
 
 logger = logging.getLogger(__name__)
+
 
 class TestClient(Base):
     def __init__(self, name: str) -> None:
@@ -50,11 +55,11 @@ class TestClient(Base):
         handle = KERNEL32.CreateFileW(
             pipe_path,
             GENERIC_READ | GENERIC_WRITE,
-            0,            # No sharing
-            None,         # Default security
+            0,  # No sharing
+            None,  # Default security
             OPEN_EXISTING,
-            0,            # Default attributes
-            None          # No template
+            0,  # Default attributes
+            None,  # No template
         )
 
         if handle == INVALID_HANDLE_VALUE:
@@ -64,10 +69,7 @@ class TestClient(Base):
 
         mode = wintypes.DWORD(PIPE_READMODE_MESSAGE)
         ret = KERNEL32.SetNamedPipeHandleState(
-            self.handle,
-            ctypes.byref(mode),
-            None,
-            None
+            self.handle, ctypes.byref(mode), None, None
         )
 
         if ret == 0:
@@ -82,7 +84,9 @@ class TestClient(Base):
         self.close()
         return False
 
-    def sendRequest(self, command: str, data: FixedSpeedRequest | None = None, timeout: float = 5.0):
+    def sendRequest(
+        self, command: str, data: FixedSpeedRequest | None = None, timeout: float = 5.0
+    ):
         """Sends a request and returns the decoded BridgeResponse."""
         if not self.alive:
             raise PipeError("Client is not connected")

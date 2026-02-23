@@ -1,0 +1,22 @@
+# lefthook.yml
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bun x commitlint --edit {1}
+
+pre-commit:
+  parallel: true
+  commands:
+    oxfmt:
+      glob: '*.{json,md,yaml,yml,js,ts}'
+      run: bun x oxfmt {staged_files}
+    python-check:
+      glob: 'src/liquidctl_server/**/*.py'
+      run: uv run --project src/liquidctl_server ruff check --fix {staged_files}
+    python-format:
+      glob: 'src/liquidctl_server/**/*.py'
+      run: uv run --project src/liquidctl_server ruff format {staged_files}
+    csharp-format:
+      glob: 'src/FanControl.Liquidctl/**/*.cs'
+      run: mise exec -- dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj --include {staged_files}

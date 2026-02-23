@@ -36,7 +36,9 @@ class LiquidctlService:
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.shutdown()
         if exc_value is not None:
-            logger.error(f"Exception during service context: {exc_value}", exc_info=True)
+            logger.error(
+                f"Exception during service context: {exc_value}", exc_info=True
+            )
 
     def initialize_all(self) -> None:
         """Find and initialize all liquidctl devices with retry logic."""
@@ -145,7 +147,8 @@ class LiquidctlService:
 
         if self._executor.device_queue_empty(device_id):
             async_job = self._executor.submit(
-                device_id, lambda dev_id=device_id: self._long_async_status_request(dev_id)
+                device_id,
+                lambda dev_id=device_id: self._long_async_status_request(dev_id),
             )
 
             if cached is not None:
@@ -247,6 +250,8 @@ class LiquidctlService:
             except (ValueError, TypeError):
                 value = None
 
-            result.append(StatusValue(key=str(status[0]), value=value, unit=str(status[2])))
+            result.append(
+                StatusValue(key=str(status[0]), value=value, unit=str(status[2]))
+            )
 
         return result

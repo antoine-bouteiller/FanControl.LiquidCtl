@@ -100,8 +100,8 @@ wheels = [
 
 [[package]]
 name = "liquidctl"
-version = "1.16.0.dev60+gd6568b12f"
-source = { git = "https://github.com/liquidctl/liquidctl.git?rev=d6568b12f5135d21d609396dbb27fef25c790bd9#d6568b12f5135d21d609396dbb27fef25c790bd9" }
+version = "1.16.0.dev62+gf9f0025d1"
+source = { git = "https://github.com/liquidctl/liquidctl.git?rev=f9f0025d15724848d57a89666f2c2c3701948a7e#f9f0025d15724848d57a89666f2c2c3701948a7e" }
 dependencies = [
     { name = "colorlog" },
     { name = "crcmod" },
@@ -131,7 +131,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "liquidctl", git = "https://github.com/liquidctl/liquidctl.git?rev=d6568b12f5135d21d609396dbb27fef25c790bd9" },
+    { name = "liquidctl", git = "https://github.com/liquidctl/liquidctl.git?rev=f9f0025d15724848d57a89666f2c2c3701948a7e" },
     { name = "msgspec", specifier = ">=0.20.0,<0.21.0" },
     { name = "pywin32", specifier = ">=311,<312" },
 ]

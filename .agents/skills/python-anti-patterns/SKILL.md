@@ -334,16 +334,16 @@ Before finalizing code, verify:
 
 ## Common Fixes Summary
 
-| Anti-Pattern | Fix |
-|-------------|-----|
-| Scattered retry logic | Centralized decorators |
-| Hard-coded config | Environment variables + pydantic-settings |
-| Exposed ORM models | DTO/response schemas |
-| Mixed I/O + logic | Repository pattern |
-| Bare except | Catch specific exceptions |
-| Batch stops on error | Return BatchResult with successes/failures |
-| No validation | Validate at boundaries with Pydantic |
-| Unclosed resources | Context managers |
-| Blocking in async | Async-native libraries |
-| Missing types | Type annotations on all public APIs |
-| Only happy path tests | Test errors and edge cases |
+| Anti-Pattern          | Fix                                        |
+| --------------------- | ------------------------------------------ |
+| Scattered retry logic | Centralized decorators                     |
+| Hard-coded config     | Environment variables + pydantic-settings  |
+| Exposed ORM models    | DTO/response schemas                       |
+| Mixed I/O + logic     | Repository pattern                         |
+| Bare except           | Catch specific exceptions                  |
+| Batch stops on error  | Return BatchResult with successes/failures |
+| No validation         | Validate at boundaries with Pydantic       |
+| Unclosed resources    | Context managers                           |
+| Blocking in async     | Async-native libraries                     |
+| Missing types         | Type annotations on all public APIs        |
+| Only happy path tests | Test errors and edge cases                 |
