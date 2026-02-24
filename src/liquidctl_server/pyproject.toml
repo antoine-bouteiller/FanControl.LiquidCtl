@@ -19,8 +19,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 path = "../../package.json"
-
-[tool.hatch.metadata.hooks.custom]
+pattern = '"version":\s*"(?P<version>[^"]+)"'
 
 [tool.hatch.metadata]
 allow-direct-references = true

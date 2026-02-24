@@ -2,7 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
-  "schedule": ["every weekend"],
+  "schedule": ["before 3am on the first day of the month"],
+  "rangeStrategy": "update-lockfile",
   "customManagers": [
     {
       "customType": "regex",

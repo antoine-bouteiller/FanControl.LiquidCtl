@@ -10,7 +10,8 @@
     [
       "@semantic-release/commit-analyzer",
       {
-        "preset": "conventionalcommits"
+        "preset": "conventionalcommits",
+        "releaseRules": [{ "type": "deps", "release": "patch" }]
       }
     ],
     [
