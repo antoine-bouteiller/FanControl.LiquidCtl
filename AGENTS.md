@@ -21,7 +21,7 @@ cd src/Liquidctl && uv sync && uv build
 cd src/Liquidctl && uv run pytest tests/
 
 # Full Release
-.\build.ps1
+.\scripts\release.ps1
 ```
 
 ## File Structure

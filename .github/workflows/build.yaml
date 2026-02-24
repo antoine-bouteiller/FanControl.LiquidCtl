@@ -1,17 +1,52 @@
 name: Build
 
 on:
-  workflow_call:
-    outputs:
-      artifact-name:
-        description: 'Name of the uploaded artifact'
-        value: ${{ jobs.build.outputs.artifact-name }}
   pull_request:
     branches:
       - main
 
 jobs:
+  check-dotnet:
+    name: Check Dotnet
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build .NET Plugin
+        run: |
+          Set-Location .\src\FanControl.Liquidctl
+          dotnet build -c Release
+
+  check-python:
+    name: Check Python
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Lint Python Bridge
+        run: |
+          Set-Location .\src\liquidctl_server
+          uv sync
+          uv run ruff check
+
   build:
+    name: Build
+    needs: [check-dotnet, check-python]
     runs-on: windows-latest
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
@@ -19,11 +54,7 @@ jobs:
       - name: Set Artifact Name
         id: set-artifact-name
         run: |
-          if ("${{ github.event.pull_request.number }}" -ne "") {
-            $artifactName = "FanControl.Liquidctl-PR-${{ github.event.pull_request.number }}"
-          } else {
-            $artifactName = "FanControl.Liquidctl-Build-${{ github.run_number }}"
-          }
+          $artifactName = "FanControl.Liquidctl-PR-${{ github.event.pull_request.number }}"
           echo "artifact-name=$artifactName" >> $env:GITHUB_OUTPUT
 
       - name: Checkout code
@@ -52,32 +83,8 @@ jobs:
           restore-keys: |
             nuitka-${{ runner.os }}-
 
-      - name: Build .NET Plugin
-        run: |
-          Set-Location .\src\FanControl.Liquidctl
-          dotnet build -c Release
-
-      - name: Build Python Bridge
-        run: |
-          Set-Location .\src\liquidctl_server
-          uv sync
-          uv run ruff check
-
-          uv run python -m nuitka `
-            --standalone `
-            --output-dir=dist/standalone `
-            --output-filename=liquidctl_server.exe `
-            --assume-yes-for-downloads `
-            --windows-console-mode=disable `
-            --windows-icon-from-ico=liquidctl.ico `
-            .\liquidctl_server\server.py
-
-      - name: Create Artifact Archives
-        run: |
-          $dll = ".\src\FanControl.Liquidctl\bin\Release\net8.0\FanControl.Liquidctl.dll"
-
-          Rename-Item ".\src\liquidctl_server\dist\standalone\server.dist" "liquidctl_server"
-          Compress-Archive -Path $dll, ".\src\liquidctl_server\dist\standalone\liquidctl_server" -DestinationPath ".\FanControl.Liquidctl.zip"
+      - name: Build and Archive
+        run: pwsh ./scripts/release.ps1
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v6
