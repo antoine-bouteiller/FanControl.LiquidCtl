@@ -57,13 +57,6 @@ jobs:
           Set-Location .\src\FanControl.Liquidctl
           dotnet build -c Release
 
-      - name: Get Version
-        id: get-version
-        run: |
-          $manifest = Get-Content ".release-please-manifest.json" | ConvertFrom-Json
-          $version = $manifest."."
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-
       - name: Build Python Bridge
         run: |
           Set-Location .\src\liquidctl_server
