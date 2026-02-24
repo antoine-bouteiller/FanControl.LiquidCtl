@@ -337,12 +337,15 @@ pytest
 ## [Unreleased]
 
 ### Added
+
 - New feature X
 
 ### Changed
+
 - Modified behavior of Y
 
 ### Fixed
+
 - Bug in Z
 ```
 

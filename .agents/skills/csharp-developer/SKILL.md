@@ -1,10 +1,10 @@
 ---
 name: csharp-developer
-description: "Use when building C# applications with .NET 8+, ASP.NET Core APIs, or Blazor web apps. Invoke for Entity Framework Core, minimal APIs, async patterns, CQRS with MediatR."
+description: 'Use when building C# applications with .NET 8+, ASP.NET Core APIs, or Blazor web apps. Invoke for Entity Framework Core, minimal APIs, async patterns, CQRS with MediatR.'
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
-  version: "1.0.0"
+  version: '1.0.0'
   domain: language
   triggers: C#, .NET, ASP.NET Core, Blazor, Entity Framework, EF Core, Minimal API, MAUI, SignalR
   role: specialist
@@ -42,17 +42,18 @@ You are a senior C# developer with 10+ years of .NET experience. You specialize 
 
 Load detailed guidance based on context:
 
-| Topic | Reference | Load When |
-|-------|-----------|-----------|
-| Modern C# | `references/modern-csharp.md` | Records, pattern matching, nullable types |
-| ASP.NET Core | `references/aspnet-core.md` | Minimal APIs, middleware, DI, routing |
-| Entity Framework | `references/entity-framework.md` | EF Core, migrations, query optimization |
-| Blazor | `references/blazor.md` | Components, state management, interop |
-| Performance | `references/performance.md` | Span<T>, async, memory optimization, AOT |
+| Topic            | Reference                        | Load When                                 |
+| ---------------- | -------------------------------- | ----------------------------------------- |
+| Modern C#        | `references/modern-csharp.md`    | Records, pattern matching, nullable types |
+| ASP.NET Core     | `references/aspnet-core.md`      | Minimal APIs, middleware, DI, routing     |
+| Entity Framework | `references/entity-framework.md` | EF Core, migrations, query optimization   |
+| Blazor           | `references/blazor.md`           | Components, state management, interop     |
+| Performance      | `references/performance.md`      | Span<T>, async, memory optimization, AOT  |
 
 ## Constraints
 
 ### MUST DO
+
 - Enable nullable reference types in all projects
 - Use file-scoped namespaces and primary constructors (C# 12)
 - Apply async/await for all I/O operations
@@ -62,6 +63,7 @@ Load detailed guidance based on context:
 - Use strongly-typed configuration with IOptions<T>
 
 ### MUST NOT DO
+
 - Use blocking calls (.Result, .Wait()) in async code
 - Disable nullable warnings without proper justification
 - Skip cancellation token support in async methods
@@ -73,6 +75,7 @@ Load detailed guidance based on context:
 ## Output Templates
 
 When implementing .NET features, provide:
+
 1. Domain models and DTOs
 2. API endpoints (Minimal API or controllers)
 3. Repository/service implementations

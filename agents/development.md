@@ -39,12 +39,14 @@ public void Update()
 ## Building
 
 **C# Plugin:**
+
 ```bash
 cd src/FanControl.Liquidctl
 dotnet build
 ```
 
 **Python Bridge:**
+
 ```bash
 cd src/Liquidctl
 uv sync
@@ -52,6 +54,7 @@ uv build
 ```
 
 **Complete Release:**
+
 ```powershell
 .\build.ps1
 ```
@@ -59,12 +62,14 @@ uv build
 ## Testing
 
 **Manual Testing:**
+
 1. Copy DLL to FanControl plugins folder
 2. Launch FanControl
 3. Check logs for initialization
 4. Verify sensors appear in UI
 
 **Python Bridge Testing:**
+
 ```bash
 cd src/Liquidctl
 uv run pytest tests/

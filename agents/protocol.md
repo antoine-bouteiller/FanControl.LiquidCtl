@@ -10,6 +10,7 @@
 > Note: Examples show logical structure. Actual wire format is MessagePack binary.
 
 ### Initialize
+
 ```json
 {
   "command": "initialize"
@@ -17,6 +18,7 @@
 ```
 
 ### Get Status
+
 ```json
 {
   "command": "get_status"
@@ -24,6 +26,7 @@
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -50,6 +53,7 @@
 ```
 
 ### Set Speed
+
 ```json
 {
   "command": "set_speed",

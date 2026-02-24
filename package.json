@@ -1,0 +1,29 @@
+{
+  "name": "fancontrol-liquidctl",
+  "version": "2.2.1",
+  "private": true,
+  "scripts": {
+    "prepare": "lefthook install",
+    "lint": "lefthook run pre-commit",
+    "format": "bun x oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && mise exec -- dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.4",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
+    "lefthook": "^2.1.1",
+    "oxfmt": "^0.35.0",
+    "semantic-release": "^25.0.3"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
+}

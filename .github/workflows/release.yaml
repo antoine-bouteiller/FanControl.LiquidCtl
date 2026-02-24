@@ -5,29 +5,46 @@ on:
   push:
     branches:
       - main
+      - develop
 
 jobs:
-  release-please:
+  release:
     runs-on: windows-latest
     permissions:
-      contents: write # to create release commit (google-github-actions/release-please-action)
-      pull-requests: write # to create release PR (google-github-actions/release-please-action)
-      issues: write # to add labels (google-github-actions/release-please-action)
+      contents: write # to create release commit
+      issues: write # to add labels
+      pull-requests: write # to create release PR
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.semantic.outputs.new_release_published }}
+      tag_name: ${{ steps.semantic.outputs.new_release_git_tag }}
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: release
+    if: ${{ needs.release.outputs.release_created }}
     uses: ./.github/workflows/build.yaml
 
   upload:
-    needs: [release-please, build]
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: [release, build]
+    if: ${{ needs.release.outputs.release_created }}
     runs-on: windows-latest
     permissions:
       contents: write # to upload release artifact
@@ -43,4 +60,4 @@ jobs:
       - name: Upload Release Artifact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ needs.release-please.outputs.tag_name }} ./FanControl.Liquidctl.zip
+        run: gh release upload ${{ needs.release.outputs.tag_name }} ./FanControl.Liquidctl.zip

@@ -2,12 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
-  "schedule": ["every weekend"],
+  "schedule": ["before 3am on the first day of the month"],
+  "rangeStrategy": "update-lockfile",
   "customManagers": [
     {
       "customType": "regex",
       "fileMatch": ["^src/liquidctl_server/pyproject\\.toml$"],
-      "matchStrings": ["liquidctl\\s*@\\s*git\\+https://github\\.com/[^/]+/[^/\\s]+?(?:\\.git)?@(?<currentDigest>[a-f0-9]+)"],
+      "matchStrings": [
+        "liquidctl\\s*@\\s*git\\+https://github\\.com/[^/]+/[^/\\s]+?(?:\\.git)?@(?<currentDigest>[a-f0-9]+)"
+      ],
       "currentValueTemplate": "main",
       "packageNameTemplate": "https://github.com/liquidctl/liquidctl",
       "datasourceTemplate": "git-refs",

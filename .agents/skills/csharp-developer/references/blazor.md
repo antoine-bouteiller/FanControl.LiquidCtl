@@ -290,12 +290,12 @@ public class AppState
 ```javascript
 // wwwroot/js/mapComponent.js
 export function initializeMap(element) {
-    const map = new Map(element);
-    return {
-        setLocation: (lat, lng) => {
-            map.setView([lat, lng], 13);
-        }
-    };
+  const map = new Map(element);
+  return {
+    setLocation: (lat, lng) => {
+      map.setView([lat, lng], 13);
+    },
+  };
 }
 ```
 
@@ -539,15 +539,15 @@ public class NotificationService : IAsyncDisposable
 
 ## Quick Reference
 
-| Feature | Use Case | Notes |
-|---------|----------|-------|
-| `@page` | Route definition | Can have multiple routes |
-| `@inject` | Dependency injection | Or use `[Inject]` property |
-| `@bind` | Two-way binding | `@bind-Value` for components |
-| `[Parameter]` | Component input | Use `[EditorRequired]` when needed |
-| `EventCallback` | Component events | Type-safe callbacks |
-| `RenderFragment` | Child content | For flexible layouts |
-| `CascadingValue` | Shared state | Automatic to descendants |
-| `AuthorizeView` | Conditional auth UI | Or `@attribute [Authorize]` |
-| `ErrorBoundary` | Error handling | Catch render exceptions |
-| `Virtualize` | Large lists | Performance optimization |
+| Feature          | Use Case             | Notes                              |
+| ---------------- | -------------------- | ---------------------------------- |
+| `@page`          | Route definition     | Can have multiple routes           |
+| `@inject`        | Dependency injection | Or use `[Inject]` property         |
+| `@bind`          | Two-way binding      | `@bind-Value` for components       |
+| `[Parameter]`    | Component input      | Use `[EditorRequired]` when needed |
+| `EventCallback`  | Component events     | Type-safe callbacks                |
+| `RenderFragment` | Child content        | For flexible layouts               |
+| `CascadingValue` | Shared state         | Automatic to descendants           |
+| `AuthorizeView`  | Conditional auth UI  | Or `@attribute [Authorize]`        |
+| `ErrorBoundary`  | Error handling       | Catch render exceptions            |
+| `Virtualize`     | Large lists          | Performance optimization           |

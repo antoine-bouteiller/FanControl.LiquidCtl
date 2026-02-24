@@ -13,6 +13,7 @@ Refactor bloated agent instruction files (AGENTS.md, CLAUDE.md, COPILOT.md, etc.
 ## Triggers
 
 Use this skill when:
+
 - "refactor my AGENTS.md" / "refactor my CLAUDE.md"
 - "split my agent instructions"
 - "organize my CLAUDE.md file"
@@ -24,13 +25,13 @@ Use this skill when:
 
 ## Quick Reference
 
-| Phase | Action | Output |
-|-------|--------|--------|
-| 1. Analyze | Find contradictions | List of conflicts to resolve |
-| 2. Extract | Identify essentials | Core instructions for root file |
-| 3. Categorize | Group remaining instructions | Logical categories |
-| 4. Structure | Create file hierarchy | Root + linked files |
-| 5. Prune | Flag for deletion | Redundant/vague instructions |
+| Phase         | Action                       | Output                          |
+| ------------- | ---------------------------- | ------------------------------- |
+| 1. Analyze    | Find contradictions          | List of conflicts to resolve    |
+| 2. Extract    | Identify essentials          | Core instructions for root file |
+| 3. Categorize | Group remaining instructions | Logical categories              |
+| 4. Structure  | Create file hierarchy        | Root + linked files             |
+| 5. Prune      | Flag for deletion            | Redundant/vague instructions    |
 
 ---
 
@@ -41,12 +42,14 @@ Use this skill when:
 Identify any instructions that conflict with each other.
 
 **Look for:**
+
 - Contradictory style guidelines (e.g., "use semicolons" vs "no semicolons")
 - Conflicting workflow instructions
 - Incompatible tool preferences
 - Mutually exclusive patterns
 
 **For each contradiction found:**
+
 ```markdown
 ## Contradiction Found
 
@@ -74,6 +77,7 @@ Extract ONLY what belongs in the root agent file. The root should be minimal - i
 | Universal rules | Applies to 100% of tasks |
 
 **NOT essential (move to linked files):**
+
 - Language-specific conventions
 - Testing guidelines
 - Code style details
@@ -100,6 +104,7 @@ Organize remaining instructions into logical categories.
 | `performance.md` | Optimization rules, caching, lazy loading |
 
 **Grouping rules:**
+
 1. Each file should be self-contained for its topic
 2. Aim for 3-8 files (not too granular, not too broad)
 3. Name files clearly: `{topic}.md`
@@ -110,6 +115,7 @@ Organize remaining instructions into logical categories.
 ### Phase 4: Create the File Structure
 
 **Output structure:**
+
 ```
 project-root/
 ├── CLAUDE.md (or AGENTS.md)     # Minimal root with links
@@ -122,6 +128,7 @@ project-root/
 ```
 
 **Root file template:**
+
 ```markdown
 # Project Name
 
@@ -137,6 +144,7 @@ One-sentence description of the project.
 ## Detailed Instructions
 
 For specific guidelines, see:
+
 - [TypeScript Conventions](.claude/typescript.md)
 - [Testing Guidelines](.claude/testing.md)
 - [Code Style](.claude/code-style.md)
@@ -145,29 +153,35 @@ For specific guidelines, see:
 ```
 
 **Each linked file template:**
+
 ```markdown
 # {Topic} Guidelines
 
 ## Overview
+
 Brief context for when these guidelines apply.
 
 ## Rules
 
 ### Rule Category 1
+
 - Specific, actionable instruction
 - Another specific instruction
 
 ### Rule Category 2
+
 - Specific, actionable instruction
 
 ## Examples
 
 ### Good
+
 \`\`\`typescript
 // Example of correct pattern
 \`\`\`
 
 ### Avoid
+
 \`\`\`typescript
 // Example of what not to do
 \`\`\`
@@ -189,15 +203,16 @@ Identify instructions that should be removed entirely.
 | Outdated | References deprecated APIs | No longer applies |
 
 **Output format:**
+
 ```markdown
 ## Flagged for Deletion
 
-| Instruction | Reason |
-|-------------|--------|
-| "Write clean, maintainable code" | Too vague to be actionable |
-| "Use TypeScript" | Redundant - project is already TS |
-| "Don't commit secrets" | Agent already knows this |
-| "Follow best practices" | Meaningless without specifics |
+| Instruction                      | Reason                            |
+| -------------------------------- | --------------------------------- |
+| "Write clean, maintainable code" | Too vague to be actionable        |
+| "Use TypeScript"                 | Redundant - project is already TS |
+| "Don't commit secrets"           | Agent already knows this          |
+| "Follow best practices"          | Meaningless without specifics     |
 ```
 
 ---
@@ -219,53 +234,60 @@ Identify instructions that should be removed entirely.
 
 ## Anti-Patterns
 
-| Avoid | Why | Instead |
-|-------|-----|---------|
-| Keeping everything in root | Bloated, hard to maintain | Split into linked files |
-| Too many categories | Fragmentation | Consolidate related topics |
-| Vague instructions | Wastes tokens, no value | Be specific or delete |
-| Duplicating defaults | Agent already knows | Only override when needed |
-| Deep nesting | Hard to navigate | Flat structure with links |
+| Avoid                      | Why                       | Instead                    |
+| -------------------------- | ------------------------- | -------------------------- |
+| Keeping everything in root | Bloated, hard to maintain | Split into linked files    |
+| Too many categories        | Fragmentation             | Consolidate related topics |
+| Vague instructions         | Wastes tokens, no value   | Be specific or delete      |
+| Duplicating defaults       | Agent already knows       | Only override when needed  |
+| Deep nesting               | Hard to navigate          | Flat structure with links  |
 
 ---
 
 ## Examples
 
 ### Before (Bloated Root)
+
 ```markdown
 # CLAUDE.md
 
 This is a React project.
 
 ## Code Style
+
 - Use 2 spaces
 - Use semicolons
 - Prefer const over let
 - Use arrow functions
-... (200 more lines)
+  ... (200 more lines)
 
 ## Testing
+
 - Use Jest
 - Coverage > 80%
-... (100 more lines)
+  ... (100 more lines)
 
 ## TypeScript
+
 - Enable strict mode
-... (150 more lines)
+  ... (150 more lines)
 ```
 
 ### After (Progressive Disclosure)
+
 ```markdown
 # CLAUDE.md
 
 React dashboard for real-time analytics visualization.
 
 ## Commands
+
 - `pnpm dev` - Start development server
 - `pnpm test` - Run tests with coverage
 - `pnpm build` - Production build
 
 ## Guidelines
+
 - [Code Style](.claude/code-style.md)
 - [Testing](.claude/testing.md)
 - [TypeScript](.claude/typescript.md)
