@@ -23,6 +23,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'latest'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -33,18 +37,18 @@ jobs:
 
       - name: Semantic Release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     needs: release
-    if: ${{ needs.release.outputs.release_created }}
+    if: ${{ needs.release.outputs.release_created == 'true' }}
     uses: ./.github/workflows/build.yaml
 
   upload:
     needs: [release, build]
-    if: ${{ needs.release.outputs.release_created }}
+    if: ${{ needs.release.outputs.release_created == 'true' }}
     runs-on: windows-latest
     permissions:
       contents: write # to upload release artifact
