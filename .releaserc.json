@@ -10,14 +10,7 @@
     [
       "@semantic-release/commit-analyzer",
       {
-        "preset": "conventionalcommits",
-        "releaseRules": [
-          { "type": "docs", "scope": "README", "release": "patch" },
-          { "type": "chore", "scope": "deps", "release": "patch" },
-          { "type": "feat", "release": "minor" },
-          { "type": "fix", "release": "patch" },
-          { "type": "perf", "release": "patch" }
-        ]
+        "preset": "conventionalcommits"
       }
     ],
     [
@@ -37,15 +30,15 @@
     ],
     "@semantic-release/changelog",
     [
-      "@semantic-release/exec",
+      "@semantic-release/npm",
       {
-        "prepareCmd": "python -c \"import json; manifest=json.load(open('version.json')); manifest['.']='${nextRelease.version}'; json.dump(manifest, open('version.json', 'w'), indent=2); print('')\""
+        "npmPublish": false
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "version.json"],
+        "assets": ["CHANGELOG.md", "package.json"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
