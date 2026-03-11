@@ -4,6 +4,11 @@
   "dependencyDashboard": false,
   "schedule": ["before 3am on the first day of the month"],
   "rangeStrategy": "update-lockfile",
+  "postUpgradeTasks": {
+    "commands": ["cd src/liquidctl_server && uv lock"],
+    "fileFilters": ["src/liquidctl_server/uv.lock"],
+    "executionMode": "update"
+  },
   "customManagers": [
     {
       "customType": "regex",
