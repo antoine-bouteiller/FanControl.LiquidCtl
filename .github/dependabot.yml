@@ -13,7 +13,19 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: daily
     commit-message:
       prefix: 'chore'
       include: 'scope'
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    groups:
+      default:
+        patterns:
+          - '*'
