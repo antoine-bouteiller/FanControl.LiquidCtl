@@ -12,6 +12,7 @@
       {
         "preset": "conventionalcommits",
         "releaseRules": [
+          { "scope": "deps", "release": "patch" },
           { "type": "chore", "scope": "deps", "release": "patch" },
           { "type": "chore", "release": false }
         ]
