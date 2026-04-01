@@ -1,13 +1,13 @@
 commit-msg:
   commands:
     lint-commit-msg:
-      run: bunx commitlint --edit
+      run: pnpm dlx commitlint --edit
 pre-commit:
   parallel: true
   jobs:
     - name: Oxfmt
       glob: '*.{json,md,yaml,yml,js,ts}'
-      run: bun x oxfmt {staged_files}
+      run: pnpm oxfmt {staged_files}
       stage_fixed: true
     - name: Ruff Check
       glob: 'src/liquidctl_server/**/*.py'

@@ -5,13 +5,14 @@
   "scripts": {
     "prepare": "lefthook install",
     "lint": "lefthook run pre-commit",
-    "format": "bun x oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && mise exec -- dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
+    "format": "pnpm oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && mise exec -- dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "lefthook": "^2.1.1",
     "oxfmt": "^0.43.0",
     "semantic-release": "^25.0.3"
@@ -20,5 +21,6 @@
     "extends": [
       "@commitlint/config-conventional"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.32.1"
 }
