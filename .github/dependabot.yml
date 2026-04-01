@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /src/liquidctl_server
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: 'deps'
+      prefix-development: 'chore'
+    groups:
+      python-dependencies:
+        dependency-type: production
+      python-dev-dependencies:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore'
+    groups:
+      github-actions:
+        patterns:
+          - '*'
