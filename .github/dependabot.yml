@@ -6,7 +6,8 @@ updates:
     schedule:
       interval: daily
     commit-message:
-      prefix: 'deps'
+      prefix: 'chore'
+      include: 'scope'
       prefix-development: 'chore'
 
   - package-ecosystem: github-actions
@@ -15,3 +16,4 @@ updates:
       interval: monthly
     commit-message:
       prefix: 'chore'
+      include: 'scope'

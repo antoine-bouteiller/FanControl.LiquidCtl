@@ -100,8 +100,8 @@ wheels = [
 
 [[package]]
 name = "liquidctl"
-version = "1.16.0.dev63+g03371815f"
-source = { git = "https://github.com/liquidctl/liquidctl.git?rev=03371815f8859d75b339e84ee40e66c20634d402#03371815f8859d75b339e84ee40e66c20634d402" }
+version = "1.16.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorlog" },
     { name = "crcmod" },
@@ -112,6 +112,10 @@ dependencies = [
     { name = "pyusb" },
     { name = "smbus", marker = "sys_platform == 'linux'" },
     { name = "winusbcdc", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7f/9c/11f37716eeeccc72a781c80e76021a33cafa35578627263199ea62b2eb2d/liquidctl-1.16.0.tar.gz", hash = "sha256:b631a9f9c17980304c482ba72599b4089cc168d8c2edfdf65b0daa85cc614f8f", size = 1901733, upload-time = "2026-03-03T22:46:47.398Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/85/ccdaf3518149a625f7b03dee35672c13f07ec8ff07cfac952ee770f6e8a5/liquidctl-1.16.0-py3-none-any.whl", hash = "sha256:9bc686c06ef8029cb7e15d2857a509704907a2722f2d18edf1d046aa4b1ba5a9", size = 153709, upload-time = "2026-03-03T22:46:44.675Z" },
 ]
 
 [[package]]
@@ -131,7 +135,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "liquidctl", git = "https://github.com/liquidctl/liquidctl.git?rev=03371815f8859d75b339e84ee40e66c20634d402" },
+    { name = "liquidctl", specifier = ">=1.16.0,<2.0.0" },
     { name = "msgspec", specifier = ">=0.20.0,<0.21.0" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=311,<312" },
 ]

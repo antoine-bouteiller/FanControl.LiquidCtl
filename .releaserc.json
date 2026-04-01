@@ -11,7 +11,10 @@
       "@semantic-release/commit-analyzer",
       {
         "preset": "conventionalcommits",
-        "releaseRules": [{ "type": "deps", "release": "patch" }]
+        "releaseRules": [
+          { "type": "chore", "scope": "deps", "release": "patch" },
+          { "type": "chore", "release": false }
+        ]
       }
     ],
     [
@@ -22,7 +25,7 @@
           "types": [
             { "type": "feat", "section": "🎉 New Features" },
             { "type": "fix", "section": "🐛 Bug Fixes" },
-            { "type": "deps", "section": "📦 Dependency Updates" },
+            { "type": "chore", "scope": "deps", "section": "📦 Dependency Updates" },
             { "type": "docs", "section": "📚 Documentation" },
             { "type": "chore", "section": "🔧 Maintenance", "hidden": true }
           ]
