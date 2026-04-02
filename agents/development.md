@@ -79,6 +79,6 @@ uv run pytest tests/
 
 - .NET Version: 8.0
 - C# Language Version: Latest
-- Python Version: 3.11+
+- Python Version: 3.14+
 - FanControl Plugin Interface: IPlugin3
 - Target Platform: Windows (win-x64)
