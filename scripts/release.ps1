@@ -17,7 +17,7 @@ uv run python -m nuitka `
     .\liquidctl_server\server.py
 Pop-Location
 
-$dll = "src/FanControl.Liquidctl/bin/Release/net8.0/FanControl.Liquidctl.dll"
+$dll = "src/FanControl.Liquidctl/bin/Release/net10.0/FanControl.Liquidctl.dll"
 $pythonDist = "src/liquidctl_server/dist/standalone/server.dist"
 $pythonTarget = "src/liquidctl_server/dist/standalone/liquidctl_server"
 
