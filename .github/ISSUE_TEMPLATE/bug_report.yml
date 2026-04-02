@@ -5,37 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report an issue. Please fill out the information below to help us diagnose the problem.
-
-  - type: dropdown
-    id: fancontrol-release
-    attributes:
-      label: FanControl Release
-      description: Which release of FanControl are you using?
-      options:
-        - .NET 10 (recommended)
-        - .NET 8
-        - Other
-    validations:
-      required: true
-
-  - type: input
-    id: fancontrol-version
-    attributes:
-      label: FanControl Version
-      description: The version number of FanControl (e.g. V203)
-      placeholder: 'V203'
-    validations:
-      required: true
-
-  - type: input
-    id: plugin-version
-    attributes:
-      label: Plugin Version
-      description: The version of FanControl.Liquidctl you installed (check the release tag)
-      placeholder: '1.0.0'
-    validations:
-      required: true
+        Thanks for taking the time to report an issue. Please fill out the information below to help me diagnose the problem. Before submitting, please ensure you are using the latest version of FanControl and this plugin, and ensure that you have the dotnet 10 release of FanControl installed and not the 4.8 one.
 
   - type: textarea
     id: devices
@@ -57,22 +27,10 @@ body:
       required: true
 
   - type: textarea
-    id: steps
-    attributes:
-      label: Steps to Reproduce
-      description: Steps to reproduce the behavior
-      placeholder: |
-        1. Open FanControl
-        2. ...
-    validations:
-      required: false
-
-  - type: textarea
     id: logs
     attributes:
       label: Logs
       description: |
-        Paste relevant logs from FanControl. You can find them in the FanControl log file.
-      render: text
+        Paste relevant logs from FanControl or upload the log file. You can find them in the FanControl folder.
     validations:
       required: true
