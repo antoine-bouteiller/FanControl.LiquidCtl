@@ -1,0 +1,78 @@
+name: Bug Report
+description: Report a bug or issue with FanControl.Liquidctl
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue. Please fill out the information below to help us diagnose the problem.
+
+  - type: dropdown
+    id: fancontrol-release
+    attributes:
+      label: FanControl Release
+      description: Which release of FanControl are you using?
+      options:
+        - .NET 10 (recommended)
+        - .NET 8
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: fancontrol-version
+    attributes:
+      label: FanControl Version
+      description: The version number of FanControl (e.g. V203)
+      placeholder: 'V203'
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: The version of FanControl.Liquidctl you installed (check the release tag)
+      placeholder: '1.0.0'
+    validations:
+      required: true
+
+  - type: textarea
+    id: devices
+    attributes:
+      label: Devices
+      description: List the liquidctl-compatible devices connected to your system (e.g. NZXT Kraken X63, NZXT Smart Device V2)
+      placeholder: |
+        - NZXT Kraken X63
+        - NZXT Smart Device V2
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the issue you are experiencing
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Open FanControl
+        2. ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Paste relevant logs from FanControl. You can find them in the FanControl log file.
+      render: text
+    validations:
+      required: true

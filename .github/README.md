@@ -1,5 +1,7 @@
 # FanControl.Liquidctl
 
+> **Important:** This plugin requires the **.NET 10** version of FanControl. Make sure you are running a FanControl release built on .NET 10.
+
 A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liquidctl) to provide comprehensive sensor data and pump control for various All-in-One (AIO) liquid coolers and smart devices.
 
 ## Features
@@ -21,7 +23,7 @@ _Note: Should work with any liquidctl-supported device, but these are the ones I
 
 ## Prerequisites
 
-- Windows 11 22H2 or higher or .NET 8 installed manually
+- Windows 11 22H2 or higher or .NET 10 installed manually
 - [FanControl](https://github.com/Rem0o/FanControl.Releases) installed
 - Compatible AIO cooler or smart device
 
@@ -65,7 +67,7 @@ Once installed, the plugin automatically:
 - Ensure all files are extracted to the correct Plugins directory
 - Check that your AIO is properly connected and recognized by Windows
 - Restart FanControl after installation
-- Verify .NET 8 runtime is available
+- Verify .NET 10 runtime is available
 
 ### No Devices Detected
 
@@ -90,7 +92,7 @@ The plugin consists of two main components:
 
 ### Prerequisites
 
-- .NET 8 SDK
+- .NET 10 SDK
 - [uv](https://github.com/astral-sh/uv)
 
 ### Building
