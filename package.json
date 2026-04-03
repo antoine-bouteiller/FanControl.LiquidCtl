@@ -5,7 +5,7 @@
   "scripts": {
     "prepare": "lefthook install",
     "lint": "lefthook run pre-commit",
-    "format": "pnpm oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && mise exec -- dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
+    "format": "pnpm oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
