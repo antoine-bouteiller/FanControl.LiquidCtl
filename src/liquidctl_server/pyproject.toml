@@ -7,7 +7,7 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
   "liquidctl>=1.16.0,<2.0.0",
   "pywin32>=311,<312; sys_platform == 'win32'",
-  "msgspec>=0.20.0,<0.22.0",
+  "msgspec>=0.21.1,<0.22.0",
 ]
 
 [dependency-groups]
