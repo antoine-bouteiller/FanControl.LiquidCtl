@@ -8,7 +8,6 @@ updates:
     commit-message:
       prefix: 'chore'
       include: 'scope'
-      prefix-development: 'chore'
 
   - package-ecosystem: github-actions
     directory: /
@@ -26,6 +25,11 @@ updates:
       prefix: 'chore'
       include: 'scope'
     groups:
-      default:
+      commitlint:
         patterns:
-          - '*'
+          - '@commitlint/*'
+      semantic-release:
+        patterns:
+          - 'semantic-release'
+          - '@semantic-release/*'
+          - 'conventional-changelog-*'
