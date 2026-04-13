@@ -1,0 +1,53 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  packageRules: [
+    {
+      matchUpdateTypes: ['major'],
+      labels: ['type/major'],
+      semanticCommitType: 'chore',
+      semanticCommitScope: 'deps',
+      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}})!:',
+      commitMessageExtra: '( {{currentVersion}} ➜ {{newVersion}} )',
+    },
+    {
+      matchUpdateTypes: ['minor'],
+      labels: ['type/minor'],
+      semanticCommitType: 'chore',
+      semanticCommitScope: 'deps',
+      commitMessageExtra: '( {{currentVersion}} ➜ {{newVersion}} )',
+    },
+    {
+      matchUpdateTypes: ['patch'],
+      labels: ['type/patch'],
+      semanticCommitType: 'chore',
+      semanticCommitScope: 'deps',
+      commitMessageExtra: '( {{currentVersion}} ➜ {{newVersion}} )',
+    },
+    {
+      matchUpdateTypes: ['digest'],
+      labels: ['type/digest'],
+      semanticCommitType: 'chore',
+      semanticCommitScope: 'deps',
+      commitMessageExtra: '( {{currentDigestShort}} ➜ {{newDigestShort}} )',
+    },
+    {
+      matchManagers: ['github-actions'],
+      addLabels: ['renovate/github-action'],
+      commitMessageTopic: 'action {{depName}}',
+    },
+    {
+      matchManagers: ['npm'],
+      addLabels: ['renovate/npm'],
+      commitMessageTopic: 'package {{depName}}',
+    },
+    {
+      matchManagers: ['pip_requirements', 'pip-compile', 'pep621', 'uv'],
+      addLabels: ['renovate/python'],
+      commitMessageTopic: 'package {{depName}}',
+    },
+    {
+      matchDepTypes: ['devDependencies', 'dev'],
+      semanticCommitScope: 'deps-dev',
+    },
+  ],
+}

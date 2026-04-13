@@ -1,0 +1,17 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  packageRules: [
+    {
+      description: 'Commitlint Group',
+      groupName: 'Commitlint',
+      matchPackageNames: ['@commitlint/**'],
+      minimumGroupSize: 2,
+    },
+    {
+      description: 'Semantic Release Group',
+      groupName: 'Semantic Release',
+      matchPackageNames: ['semantic-release', '@semantic-release/**', 'conventional-changelog-conventionalcommits'],
+      minimumGroupSize: 2,
+    },
+  ],
+}

@@ -1,0 +1,20 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  dependencyDashboard: false,
+  extends: [
+    'config:recommended',
+    ':disableRateLimiting',
+    ':ignoreUnstable',
+    'helpers:pinGitHubActionDigestsToSemver',
+    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/auto-merge.json5',
+    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/groups.json5',
+    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/semantic-commits.json5',
+  ],
+  ignorePresets: ['mergeConfidence:all-badges'],
+  configMigration: true,
+  gitIgnoredAuthors: ['227055450+renohate[bot]@users.noreply.github.com'],
+  labels: ['renovate'],
+  'pre-commit': {
+    enabled: true,
+  },
+}
