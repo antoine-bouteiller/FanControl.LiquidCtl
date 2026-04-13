@@ -14,7 +14,7 @@
     "@semantic-release/git": "^10.0.1",
     "conventional-changelog-conventionalcommits": "^9.3.1",
     "lefthook": "^2.1.1",
-    "oxfmt": "^0.43.0",
+    "oxfmt": "^0.44.0",
     "semantic-release": "^25.0.3"
   },
   "commitlint": {
