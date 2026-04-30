@@ -17,5 +17,13 @@
       matchUpdateTypes: ['patch', 'digest'],
       ignoreTests: true,
     },
+    {
+      description: 'Auto-merge npm updates without waiting for CI (no CI runs on npm dependency changes)',
+      matchManagers: ['npm'],
+      automerge: true,
+      automergeType: 'pr',
+      matchUpdateTypes: ['patch', 'minor'],
+      ignoreTests: true,
+    },
   ],
 }
