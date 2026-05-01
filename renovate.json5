@@ -12,6 +12,7 @@
   ],
   ignorePresets: ['mergeConfidence:all-badges'],
   configMigration: true,
+  minimumReleaseAge: '1 day',
   gitIgnoredAuthors: ['227055450+renohate[bot]@users.noreply.github.com'],
   labels: ['renovate'],
   'pre-commit': {
