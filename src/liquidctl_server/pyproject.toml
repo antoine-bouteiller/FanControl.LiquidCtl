@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.15.0,<0.16.0", "nuitka>=4.0,<4.1.0"]
+dev = ["ruff>=0.15.0,<0.16.0", "nuitka>=4.1,<4.2"]
 
 [build-system]
 requires = ["hatchling"]
