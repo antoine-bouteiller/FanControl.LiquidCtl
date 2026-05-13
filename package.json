@@ -8,8 +8,8 @@
     "format": "pnpm oxfmt . && uv run --project src/liquidctl_server ruff format src/liquidctl_server && dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.2",
-    "@commitlint/config-conventional": "^20.4.2",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
     "conventional-changelog-conventionalcommits": "^9.3.1",
