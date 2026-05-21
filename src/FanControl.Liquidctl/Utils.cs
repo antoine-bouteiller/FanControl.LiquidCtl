@@ -13,6 +13,9 @@ namespace FanControl.LiquidCtl
         [GeneratedRegex(@"^pump\s*fan\s*(speed|duty)$", RegexOptions.IgnoreCase)]
         private static partial Regex PumpFanPattern();
 
+        [GeneratedRegex(@"^external\s*fan\s*(speed|duty)$", RegexOptions.IgnoreCase)]
+        private static partial Regex ExternalFanPattern();
+
         [GeneratedRegex(@"^fan\s*(\d+)\s*(speed|duty)$", RegexOptions.IgnoreCase)]
         private static partial Regex MultipleFanPattern();
 
@@ -56,6 +59,11 @@ namespace FanControl.LiquidCtl
             if (PumpFanPattern().IsMatch(statusKey))
             {
                 return "pump-fan";
+            }
+
+            if (ExternalFanPattern().IsMatch(statusKey))
+            {
+                return "external-fans";
             }
 
             var multipleFanMatch = MultipleFanPattern().Match(statusKey);
