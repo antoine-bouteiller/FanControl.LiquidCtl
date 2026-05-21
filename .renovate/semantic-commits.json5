@@ -59,5 +59,12 @@
       matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
       semanticCommitScope: 'deps-dev',
     },
+    {
+      // Dev-only major bumps aren't breaking for consumers — strip the `!`
+      // so semantic-release doesn't treat them as a breaking release.
+      matchUpdateTypes: ['major'],
+      matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
+      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
+    },
   ],
 }
