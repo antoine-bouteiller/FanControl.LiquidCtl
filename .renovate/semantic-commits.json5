@@ -56,7 +56,7 @@
       commitMessageTopic: 'package {{depName}}',
     },
     {
-      matchDepTypes: ['devDependencies', 'dev'],
+      matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
       semanticCommitScope: 'deps-dev',
     },
   ],
