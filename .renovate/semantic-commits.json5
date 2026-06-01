@@ -66,5 +66,18 @@
       matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
       commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
     },
+    {
+      // Everything in the test project is a dev dependency. NuGet has no
+      // devDependencies depType, so match the test project file instead.
+      matchFileNames: ['**/*.Tests.csproj'],
+      semanticCommitScope: 'deps-dev',
+    },
+    {
+      // Test-only major bumps aren't breaking for consumers — strip the `!`
+      // so semantic-release doesn't treat them as a breaking release.
+      matchUpdateTypes: ['major'],
+      matchFileNames: ['**/*.Tests.csproj'],
+      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
+    },
   ],
 }
