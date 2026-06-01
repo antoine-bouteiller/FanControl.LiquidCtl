@@ -14,6 +14,9 @@ FanControl plugin that bridges liquidctl (Python) into FanControl (Windows) to c
 # C# Plugin
 dotnet build src/FanControl.Liquidctl
 
+# C# Tests
+dotnet test src/FanControl.Liquidctl.Tests
+
 # Python Bridge
 cd src/Liquidctl && uv sync && uv build
 

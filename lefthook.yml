@@ -21,3 +21,7 @@ pre-commit:
       glob: 'src/FanControl.Liquidctl/**/*.cs'
       run: dotnet format src/FanControl.Liquidctl/FanControl.Liquidctl.csproj --include {staged_files}
       stage_fixed: true
+    - name: Dotnet format tests
+      glob: 'src/FanControl.Liquidctl.Tests/**/*.cs'
+      run: dotnet format src/FanControl.Liquidctl.Tests/FanControl.Liquidctl.Tests.csproj --include {staged_files}
+      stage_fixed: true

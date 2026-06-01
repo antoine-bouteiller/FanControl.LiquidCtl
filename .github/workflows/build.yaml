@@ -27,6 +27,23 @@ jobs:
           Set-Location .\src\FanControl.Liquidctl
           dotnet build -c Release
 
+  check-dotnet-tests:
+    name: Dotnet Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run .NET Tests
+        run: |
+          Set-Location .\src\FanControl.Liquidctl.Tests
+          dotnet test -c Release --logger "console;verbosity=normal"
+
   check-python:
     name: Check Python
     runs-on: windows-latest
@@ -50,7 +67,6 @@ jobs:
 
   build:
     name: Build
-    needs: [check-dotnet, check-python]
     runs-on: windows-latest
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
