@@ -16,6 +16,9 @@ namespace FanControl.LiquidCtl
         [GeneratedRegex(@"^external\s*fan\s*(speed|duty)$", RegexOptions.IgnoreCase)]
         private static partial Regex ExternalFanPattern();
 
+        [GeneratedRegex(@"^water\s*block\s*(speed|duty)$", RegexOptions.IgnoreCase)]
+        private static partial Regex WaterBlockPattern();
+
         [GeneratedRegex(@"^fan\s*(\d+)\s*(speed|duty)$", RegexOptions.IgnoreCase)]
         private static partial Regex MultipleFanPattern();
 
@@ -64,6 +67,11 @@ namespace FanControl.LiquidCtl
             if (ExternalFanPattern().IsMatch(statusKey))
             {
                 return "external-fans";
+            }
+
+            if (WaterBlockPattern().IsMatch(statusKey))
+            {
+                return "waterblock-fan";
             }
 
             var multipleFanMatch = MultipleFanPattern().Match(statusKey);
