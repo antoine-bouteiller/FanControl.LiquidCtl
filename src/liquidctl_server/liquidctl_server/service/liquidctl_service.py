@@ -218,6 +218,42 @@ class LiquidctlService:
         except Exception as e:
             logger.error(f"Error setting fixed speed for device #{device_id}: {e}")
 
+    def _resolve_device_id(self, device_match: str) -> Optional[int]:
+        """Find a device id whose description contains device_match (case-insensitive)."""
+        needle = device_match.lower()
+        for device_id, lc_device in self.devices.items():
+            if needle in lc_device.description.lower():
+                return device_id
+        return None
+
+    def set_color(
+        self,
+        device_match: str,
+        channel: str,
+        mode: str,
+        colors: List[Tuple[int, int, int]],
+    ) -> None:
+        """Set per-LED colors for a device channel via the serialized queue."""
+        device_id = self._resolve_device_id(device_match)
+        if device_id is None:
+            raise BadRequestException(f"No device matching '{device_match}'")
+
+        try:
+            lc_device = self.devices[device_id]
+            color_job = self._executor.submit(
+                device_id,
+                lc_device.set_color,
+                channel=channel,
+                mode=mode,
+                colors=colors,
+            )
+            color_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
+
+        except FuturesTimeoutError:
+            logger.error(f"Timeout setting color for device #{device_id}")
+        except Exception as e:
+            logger.error(f"Error setting color for device #{device_id}: {e}")
+
     def disconnect_all(self) -> None:
         """Disconnect all devices."""
         for device_id, lc_device in self.devices.items():

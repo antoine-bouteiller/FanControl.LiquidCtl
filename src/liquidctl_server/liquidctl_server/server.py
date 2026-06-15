@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import threading
 import time
 from typing import Any, Callable, Dict, Optional
 
@@ -10,6 +11,7 @@ from liquidctl_server.models import (
     BadRequestException,
     BridgeResponse,
     FixedSpeedRequest,
+    LedRequest,
     MessageStatus,
     PipeError,
     PipeRequest,
@@ -25,21 +27,32 @@ def handle_get_statuses(service: LiquidctlService, data: Any) -> Any:
 
 
 def handle_set_fixed_speed(
-    service: LiquidctlService, data: Optional[FixedSpeedRequest]
+    service: LiquidctlService, data: Optional[msgspec.Raw]
 ) -> Any:
     if data is None:
         raise BadRequestException("Missing data for set.fixed_speed")
 
+    request = msgspec.json.decode(data, type=FixedSpeedRequest)
     speed_kwargs = {
-        "channel": data.speed_kwargs.channel,
-        "duty": data.speed_kwargs.duty,
+        "channel": request.speed_kwargs.channel,
+        "duty": request.speed_kwargs.duty,
     }
-    return service.set_fixed_speed(data.device_id, speed_kwargs)
+    return service.set_fixed_speed(request.device_id, speed_kwargs)
+
+
+def handle_set_led(service: LiquidctlService, data: Optional[msgspec.Raw]) -> Any:
+    if data is None:
+        raise BadRequestException("Missing data for set.led")
+
+    request = msgspec.json.decode(data, type=LedRequest)
+    colors = [tuple(color) for color in request.colors]
+    return service.set_color(request.device, request.channel, request.mode, colors)
 
 
 COMMAND_HANDLERS: Dict[str, Callable] = {
     "get.statuses": handle_get_statuses,
     "set.fixed_speed": handle_set_fixed_speed,
+    "set.led": handle_set_led,
 }
 
 
@@ -108,13 +121,29 @@ def main():
     args = parser.parse_args()
 
     setup_logging(args.log_level)
-    pipe_name = f"LiquidCtlPipe{'Test' if args.test else ''}"
+    suffix = "Test" if args.test else ""
+    pipe_name = f"LiquidCtlPipe{suffix}"
+    # Dedicated pipe for the RGB plugin: the fan client holds its connection open
+    # persistently and the pipe server is single-client per instance, so RGB needs
+    # its own pipe. Both feed the same service → same per-device DeviceExecutor
+    # queue, so the single-owner-per-HID guarantee is preserved.
+    rgb_pipe_name = f"LiquidCtlPipe{suffix}Rgb"
 
     try:
-        with LiquidctlService() as service, Server(name=pipe_name) as pipe:
+        with (
+            LiquidctlService() as service,
+            Server(name=pipe_name) as pipe,
+            Server(name=rgb_pipe_name) as rgb_pipe,
+        ):
             logger.info("Initializing Liquidctl devices...")
             service.initialize_all()
             logger.info(f"Bridge Server listening on \\\\.\\pipe\\{pipe_name}")
+            logger.info(f"RGB Bridge Server listening on \\\\.\\pipe\\{rgb_pipe_name}")
+
+            rgb_thread = threading.Thread(
+                target=run_server_loop, args=(service, rgb_pipe), daemon=True
+            )
+            rgb_thread.start()
 
             run_server_loop(service, pipe)
 
