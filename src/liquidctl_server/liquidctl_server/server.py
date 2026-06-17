@@ -3,7 +3,7 @@ import logging
 import sys
 import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 import msgspec
 
@@ -22,17 +22,18 @@ from liquidctl_server.service import LiquidctlService
 logger = logging.getLogger(__name__)
 
 
-def handle_get_statuses(service: LiquidctlService, data: Any) -> Any:
+def _decode_data(data: msgspec.Raw, type_, command: str):
+    if data is None or bytes(data) == b"null":
+        raise BadRequestException(f"Missing data for {command}")
+    return msgspec.json.decode(data, type=type_)
+
+
+def handle_get_statuses(service: LiquidctlService, data: msgspec.Raw) -> Any:
     return service.get_statuses()
 
 
-def handle_set_fixed_speed(
-    service: LiquidctlService, data: Optional[msgspec.Raw]
-) -> Any:
-    if data is None:
-        raise BadRequestException("Missing data for set.fixed_speed")
-
-    request = msgspec.json.decode(data, type=FixedSpeedRequest)
+def handle_set_fixed_speed(service: LiquidctlService, data: msgspec.Raw) -> Any:
+    request = _decode_data(data, FixedSpeedRequest, "set.fixed_speed")
     speed_kwargs = {
         "channel": request.speed_kwargs.channel,
         "duty": request.speed_kwargs.duty,
@@ -40,11 +41,8 @@ def handle_set_fixed_speed(
     return service.set_fixed_speed(request.device_id, speed_kwargs)
 
 
-def handle_set_led(service: LiquidctlService, data: Optional[msgspec.Raw]) -> Any:
-    if data is None:
-        raise BadRequestException("Missing data for set.led")
-
-    request = msgspec.json.decode(data, type=LedRequest)
+def handle_set_led(service: LiquidctlService, data: msgspec.Raw) -> Any:
+    request = _decode_data(data, LedRequest, "set.led")
     colors = [tuple(color) for color in request.colors]
     return service.set_color(request.device, request.channel, request.mode, colors)
 

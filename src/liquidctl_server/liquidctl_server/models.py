@@ -36,8 +36,10 @@ class LedRequest(msgspec.Struct):
 
 class PipeRequest(msgspec.Struct):
     command: str
-    # Decoded per-command (each command has its own payload shape).
-    data: Optional[msgspec.Raw] = None
+    # Decoded per-command (each command has its own payload shape). Kept as a
+    # bare Raw, not Optional[Raw]: msgspec drops the Raw arm of Optional[Raw] and
+    # would then reject any non-null data. Absent/null decodes to Raw(b"null").
+    data: msgspec.Raw = msgspec.Raw(b"null")
 
 
 class BridgeResponse(msgspec.Struct):
