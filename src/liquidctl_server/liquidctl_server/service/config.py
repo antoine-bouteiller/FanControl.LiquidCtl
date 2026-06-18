@@ -17,9 +17,15 @@ MAX_INIT_RETRIES: int = 3
 DEVICE_FILTER_FILE: str = "liquidctl_filter.txt"
 
 
+def _is_bundled() -> bool:
+    """True when running as the built bridge exe (Nuitka or PyInstaller)."""
+    # PyInstaller sets sys.frozen; Nuitka injects __compiled__ into each module.
+    return getattr(sys, "frozen", False) or "__compiled__" in globals()
+
+
 def _plugin_dir() -> Optional[str]:
-    """Plugin folder (parent of the bridge exe folder), or None when not frozen."""
-    if not getattr(sys, "frozen", False):
+    """Plugin folder (parent of the bridge exe folder), or None in source runs."""
+    if not _is_bundled():
         return None
     return os.path.dirname(os.path.dirname(sys.executable))
 
