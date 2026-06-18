@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import sys
 import threading
 import time
@@ -118,7 +119,10 @@ def main():
     )
     args = parser.parse_args()
 
-    setup_logging(args.log_level)
+    # Env override so the bridge can be made verbose without changing the spawn
+    # args of the host plugin (set LIQUIDCTL_BRIDGE_LOG=DEBUG before launch).
+    log_level = os.environ.get("LIQUIDCTL_BRIDGE_LOG") or args.log_level
+    setup_logging(log_level)
     suffix = "Test" if args.test else ""
     pipe_name = f"LiquidCtlPipe{suffix}"
     # Dedicated pipe for the RGB plugin: the fan client holds its connection open
@@ -135,6 +139,7 @@ def main():
         ):
             logger.info("Initializing Liquidctl devices...")
             service.initialize_all()
+            service.log_device_details()
             logger.info(f"Bridge Server listening on \\\\.\\pipe\\{pipe_name}")
             logger.info(f"RGB Bridge Server listening on \\\\.\\pipe\\{rgb_pipe_name}")
 
