@@ -32,6 +32,29 @@ namespace FanControl.LiquidCtl
                 {
                     ProcessChannel(device, channel, _container);
                 }
+
+                AddAuthoritativeControls(device, _container);
+            }
+        }
+
+        private void AddAuthoritativeControls(DeviceStatus device, IPluginSensorsContainer container)
+        {
+            foreach (string channelName in device.SpeedChannels)
+            {
+                if (device.Status.Any(s => s.Unit == "%" && Utils.ExtractChannelName(s.Key) == channelName))
+                {
+                    continue;
+                }
+
+                StatusValue? speed = device.Status.FirstOrDefault(
+                    s => s.Unit == "rpm" && Utils.ExtractChannelName(s.Key) == channelName);
+                string dutyKey = speed != null ? Utils.GetDutyKeyFromSpeedKey(speed.Key) : channelName;
+
+                StatusValue dutyChannel = new() { Key = dutyKey, Value = null, Unit = "%" };
+                string pairedId = Utils.CreateSensorId(device.Description, Utils.GetSpeedKeyFromDutyKey(dutyKey));
+                ControlSensor sensor = new(device, dutyChannel, liquidctl, pairedId, explicitChannelName: channelName);
+                sensors[sensor.Id] = sensor;
+                container.ControlSensors.Add(sensor);
             }
         }
 
