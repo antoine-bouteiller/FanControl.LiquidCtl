@@ -48,6 +48,7 @@ class DeviceStatus(msgspec.Struct):
     id: int
     description: str
     status: List[StatusValue]
+    speed_channels: List[str] = []
 
 
 class Mode(IntEnum):

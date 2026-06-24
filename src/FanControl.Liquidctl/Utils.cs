@@ -28,6 +28,9 @@ namespace FanControl.LiquidCtl
         [GeneratedRegex(@"\bduty\b", RegexOptions.IgnoreCase)]
         private static partial Regex DutyWordPattern();
 
+        [GeneratedRegex(@"\bspeed\b", RegexOptions.IgnoreCase)]
+        private static partial Regex SpeedWordPattern();
+
         [GeneratedRegex(@"\s*duty\s*", RegexOptions.IgnoreCase)]
         private static partial Regex DutyWithSpacesPattern();
 
@@ -92,6 +95,11 @@ namespace FanControl.LiquidCtl
         public static string GetSpeedKeyFromDutyKey(string dutyKey)
         {
             return DutyWordPattern().Replace(dutyKey, "speed");
+        }
+
+        public static string GetDutyKeyFromSpeedKey(string speedKey)
+        {
+            return SpeedWordPattern().Replace(speedKey, "duty");
         }
     }
 }
