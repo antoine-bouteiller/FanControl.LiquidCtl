@@ -4,6 +4,34 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import liquidctl
 from liquidctl.driver.base import BaseDriver
+from liquidctl.driver.commander_pro import CommanderPro
+from liquidctl.driver.hydro_platinum import HydroPlatinum
+from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
+
+try:
+    from liquidctl.driver.aquacomputer import Aquacomputer
+except ImportError:
+    Aquacomputer = None
+
+try:
+    from liquidctl.driver.commander_core import CommanderCore
+except ImportError:
+    CommanderCore = None
+
+try:
+    from liquidctl.driver.smart_device import H1V2
+except ImportError:
+    H1V2 = None
+
+try:
+    from liquidctl.driver.smart_device import ControlHub
+except ImportError:
+    ControlHub = None
+
+try:
+    from liquidctl.driver.hydro_pro import HydroPro
+except ImportError:
+    HydroPro = None
 
 from liquidctl_server.models import (
     BadRequestException,
@@ -27,6 +55,7 @@ class LiquidctlService:
     def __init__(self) -> None:
         self.devices: Dict[int, BaseDriver] = {}
         self.device_status_cache: Dict[int, List[StatusValue]] = {}
+        self.speed_channels: Dict[int, List[str]] = {}
         self.previous_duty: Dict[str, Union[str, int, None]] = {}
         self._executor: DeviceExecutor = DeviceExecutor()
 
@@ -94,6 +123,8 @@ class LiquidctlService:
             init_job = self._executor.submit(device_id, lc_device.initialize)
             init_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
 
+            self.speed_channels[device_id] = self._get_speed_channels(lc_device)
+
         except RuntimeError as err:
             if "already open" in str(err):
                 logger.warning(f"Device #{device_id} already connected")
@@ -123,11 +154,7 @@ class LiquidctlService:
             status_values = self._stringify_status(raw_status)
             self.device_status_cache[device_id] = status_values
 
-            return DeviceStatus(
-                id=device_id,
-                description=lc_device.description,
-                status=status_values,
-            )
+            return self._build_device_status(device_id, lc_device, status_values)
 
         except FuturesTimeoutError:
             return self._handle_status_timeout(device_id, lc_device)
@@ -171,11 +198,7 @@ class LiquidctlService:
         status_values = self._stringify_status(raw_status)
         self.device_status_cache[device_id] = status_values
 
-        return DeviceStatus(
-            id=device_id,
-            description=lc_device.description,
-            status=status_values,
-        )
+        return self._build_device_status(device_id, lc_device, status_values)
 
     def _build_status_from_cache(
         self, device_id: int, lc_device: BaseDriver
@@ -185,10 +208,16 @@ class LiquidctlService:
         if cached is None:
             return None
 
+        return self._build_device_status(device_id, lc_device, cached)
+
+    def _build_device_status(
+        self, device_id: int, lc_device: BaseDriver, status_values: List[StatusValue]
+    ) -> DeviceStatus:
         return DeviceStatus(
             id=device_id,
             description=lc_device.description,
-            status=cached,
+            status=status_values,
+            speed_channels=self.speed_channels.get(device_id, []),
         )
 
     def set_fixed_speed(
@@ -233,7 +262,33 @@ class LiquidctlService:
         self._executor.shutdown()
         self.devices.clear()
         self.device_status_cache.clear()
+        self.speed_channels.clear()
         self.previous_duty.clear()
+
+    @staticmethod
+    def _get_speed_channels(lc_device: BaseDriver) -> List[str]:
+        """Controllable speed channels reported by the driver (no uniform API exists)."""
+
+        def is_a(driver_cls) -> bool:
+            return driver_cls is not None and isinstance(lc_device, driver_cls)
+
+        if (
+            isinstance(lc_device, (SmartDevice2, SmartDevice))
+            or is_a(ControlHub)
+            or is_a(H1V2)
+        ):
+            return list(getattr(lc_device, "_speed_channels", {}).keys())
+        if is_a(Aquacomputer):
+            return list(
+                getattr(lc_device, "_device_info", {}).get("fan_ctrl", {}).keys()
+            )
+        if is_a(CommanderCore):
+            return ["pump"] if getattr(lc_device, "_has_pump", False) else []
+        if isinstance(lc_device, (CommanderPro, HydroPlatinum)):
+            return list(getattr(lc_device, "_fan_names", []))
+        if is_a(HydroPro):
+            return [f"fan{i + 1}" for i in range(getattr(lc_device, "_fan_count", 0))]
+        return []
 
     @staticmethod
     def _stringify_status(
@@ -247,7 +302,7 @@ class LiquidctlService:
         for status in statuses:
             try:
                 value = float(status[1])
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 value = None
 
             result.append(
