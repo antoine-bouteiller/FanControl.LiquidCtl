@@ -3,12 +3,25 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Dict, List, Optional, Tuple, Union
 
 import liquidctl
-from liquidctl.driver.aquacomputer import Aquacomputer
 from liquidctl.driver.base import BaseDriver
-from liquidctl.driver.commander_core import CommanderCore
 from liquidctl.driver.commander_pro import CommanderPro
 from liquidctl.driver.hydro_platinum import HydroPlatinum
-from liquidctl.driver.smart_device import H1V2, SmartDevice, SmartDevice2
+from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
+
+try:
+    from liquidctl.driver.aquacomputer import Aquacomputer
+except ImportError:
+    Aquacomputer = None
+
+try:
+    from liquidctl.driver.commander_core import CommanderCore
+except ImportError:
+    CommanderCore = None
+
+try:
+    from liquidctl.driver.smart_device import H1V2
+except ImportError:
+    H1V2 = None
 
 try:
     from liquidctl.driver.smart_device import ControlHub
@@ -255,18 +268,25 @@ class LiquidctlService:
     @staticmethod
     def _get_speed_channels(lc_device: BaseDriver) -> List[str]:
         """Controllable speed channels reported by the driver (no uniform API exists)."""
-        if isinstance(lc_device, (SmartDevice2, SmartDevice, H1V2)) or (
-            ControlHub is not None and isinstance(lc_device, ControlHub)
+
+        def is_a(driver_cls) -> bool:
+            return driver_cls is not None and isinstance(lc_device, driver_cls)
+
+        if (
+            isinstance(lc_device, (SmartDevice2, SmartDevice))
+            or is_a(ControlHub)
+            or is_a(H1V2)
         ):
             return list(getattr(lc_device, "_speed_channels", {}).keys())
-        if isinstance(lc_device, Aquacomputer):
-            device_info = getattr(lc_device, "_device_info", {})
-            return list(device_info.get("fan_ctrl", {}).keys())
-        if isinstance(lc_device, CommanderCore):
+        if is_a(Aquacomputer):
+            return list(
+                getattr(lc_device, "_device_info", {}).get("fan_ctrl", {}).keys()
+            )
+        if is_a(CommanderCore):
             return ["pump"] if getattr(lc_device, "_has_pump", False) else []
         if isinstance(lc_device, (CommanderPro, HydroPlatinum)):
             return list(getattr(lc_device, "_fan_names", []))
-        if HydroPro is not None and isinstance(lc_device, HydroPro):
+        if is_a(HydroPro):
             return [f"fan{i + 1}" for i in range(getattr(lc_device, "_fan_count", 0))]
         return []
 
