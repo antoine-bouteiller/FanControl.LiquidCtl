@@ -95,6 +95,9 @@ namespace FanControl.LiquidCtl
 
         [JsonPropertyName("status")]
         public required IReadOnlyList<StatusValue> Status { get; init; }
+
+        [JsonPropertyName("speed_channels")]
+        public IReadOnlyList<string> SpeedChannels { get; init; } = [];
     }
 
     internal sealed class CachedStatuses(IReadOnlyList<DeviceStatus> statuses)

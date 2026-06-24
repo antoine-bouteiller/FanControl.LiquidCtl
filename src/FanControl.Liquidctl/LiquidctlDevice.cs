@@ -33,12 +33,12 @@ namespace FanControl.LiquidCtl
 
         public string? PairedFanSensorId { get; }
 
-        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl, string? pairedFanSensorId) :
+        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
             base(device, channel)
         {
             Initial = Value;
             this.liquidctl = liquidctl;
-            channelName = Utils.ExtractChannelName(channel.Key);
+            channelName = explicitChannelName ?? Utils.ExtractChannelName(channel.Key);
             PairedFanSensorId = pairedFanSensorId;
         }
 
