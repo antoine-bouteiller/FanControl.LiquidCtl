@@ -45,14 +45,25 @@ jobs:
       - name: Run .NET Tests
         run: |
           Set-Location .\src\FanControl.Liquidctl.Tests
-          dotnet test -c Release --logger "console;verbosity=normal" --logger "trx;LogFileName=test-results.trx"
+          dotnet test -c Release --logger "console;verbosity=normal" --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Coverage Summary
+        if: always()
+        run: |
+          $f = Get-ChildItem .\src\FanControl.Liquidctl.Tests\TestResults -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
+          if ($f) {
+            $xml = [xml](Get-Content $f.FullName)
+            $line = [math]::Round([double]$xml.coverage.'line-rate' * 100, 1)
+            $branch = [math]::Round([double]$xml.coverage.'branch-rate' * 100, 1)
+            "## .NET Coverage`n- Lines: $line%`n- Branches: $branch%" >> $env:GITHUB_STEP_SUMMARY
+          }
 
       - name: Publish Test Results
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always()
         with:
           name: Dotnet Tests
-          path: src/FanControl.Liquidctl.Tests/test-results.trx
+          path: src/FanControl.Liquidctl.Tests/TestResults/test-results.trx
           reporter: dotnet-trx
 
   check-python:
@@ -102,6 +113,10 @@ jobs:
             --junitxml=test-results.xml \
             --cov=liquidctl_server \
             --cov-report=html:coverage-report
+
+      - name: Coverage Summary
+        if: always()
+        run: cd src/liquidctl_server && uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
 
       - name: Publish Test Results
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
