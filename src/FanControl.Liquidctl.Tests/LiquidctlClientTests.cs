@@ -1,3 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipes;
+using System.Runtime.Versioning;
+using System.Text;
 using FanControl.Plugins;
 using Xunit;
 
@@ -59,5 +63,96 @@ public sealed class LiquidctlClientTests
         var ex = Record.Exception(() => client.SetFixedSpeed(request));
 
         Assert.Null(ex);
+    }
+
+    // Must stay in this class: xUnit parallelizes across classes, which would
+    // collide on the OS-global pipe name the client hardcodes.
+    private const string PipeName = "LiquidCtlPipe";
+
+    [SupportedOSPlatform("windows")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The server is owned and disposed by the returned worker thread via using.")]
+    private static Thread StartOneShotServer(string responseJson, Action<string>? onRequest = null)
+    {
+        var server = new NamedPipeServerStream(
+            PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+
+        var thread = new Thread(() =>
+        {
+            using (server)
+            {
+                server.WaitForConnection();
+                var buffer = new byte[65536];
+                int read = server.Read(buffer, 0, buffer.Length);
+                onRequest?.Invoke(Encoding.UTF8.GetString(buffer, 0, read));
+
+                byte[] response = Encoding.UTF8.GetBytes(responseJson);
+                server.Write(response, 0, response.Length);
+                server.Flush();
+            }
+        });
+        thread.Start();
+        return thread;
+    }
+
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void GetStatuses_WithRespondingServer_ReturnsParsedStatuses()
+    {
+        const string response = """
+        {"status":"success","data":[{"id":1,"description":"Test Device","status":[{"key":"Fan 1 speed","value":1200,"unit":"rpm"}],"speed_channels":["fan1"]}]}
+        """;
+        var serverThread = StartOneShotServer(response);
+        using var client = new LiquidctlClient(new FakeLogger());
+
+        IReadOnlyList<DeviceStatus> result = client.GetStatuses();
+        serverThread.Join(5000);
+
+        var device = Assert.Single(result);
+        Assert.Equal(1, device.Id);
+        Assert.Equal("Test Device", device.Description);
+        Assert.Equal(["fan1"], device.SpeedChannels);
+    }
+
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void GetStatuses_AfterSuccess_ReturnsCachedWhenRequestFails()
+    {
+        const string response = """
+        {"status":"success","data":[{"id":1,"description":"Cached Device","status":[],"speed_channels":[]}]}
+        """;
+        var serverThread = StartOneShotServer(response);
+        using var client = new LiquidctlClient(new FakeLogger());
+
+        client.GetStatuses();
+        serverThread.Join(5000);
+
+        IReadOnlyList<DeviceStatus> cached = client.GetStatuses();
+
+        Assert.Equal("Cached Device", Assert.Single(cached).Description);
+    }
+
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void SetFixedSpeed_WithServer_SendsSerializedRequest()
+    {
+        string? received = null;
+        using var got = new ManualResetEventSlim(false);
+        var serverThread = StartOneShotServer(
+            """{"status":"success","data":null}""",
+            request => { received = request; got.Set(); });
+
+        using var client = new LiquidctlClient(new FakeLogger());
+        client.SetFixedSpeed(new FixedSpeedRequest
+        {
+            DeviceId = 7,
+            SpeedKwargs = new SpeedKwargs { Channel = "pump", Duty = 80 }
+        });
+
+        Assert.True(got.Wait(5000));
+        serverThread.Join(5000);
+        Assert.Contains("set.fixed_speed", received, StringComparison.Ordinal);
+        Assert.Contains("pump", received, StringComparison.Ordinal);
+        Assert.Contains("80", received, StringComparison.Ordinal);
     }
 }
