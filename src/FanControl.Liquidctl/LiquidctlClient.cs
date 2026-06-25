@@ -8,7 +8,7 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    public sealed class LiquidctlClient(IPluginLogger logger) : IDisposable
+    public sealed class LiquidctlClient(IPluginLogger logger) : ILiquidctlClient
     {
         private readonly IPluginLogger _logger = logger;
         private readonly string _exePath = ResolveExePath();

@@ -2,9 +2,15 @@ import pytest
 from liquidctl.driver.commander_core import CommanderCore
 from liquidctl.driver.commander_pro import CommanderPro
 from liquidctl.driver.hydro_platinum import HydroPlatinum
-from liquidctl.driver.smart_device import SmartDevice2
+from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
 
-from liquidctl_server.service.liquidctl_service import HydroPro, LiquidctlService
+from liquidctl_server.service.liquidctl_service import (
+    Aquacomputer,
+    ControlHub,
+    H1V2,
+    HydroPro,
+    LiquidctlService,
+)
 
 
 def _fake(driver_cls, **attrs):
@@ -54,6 +60,39 @@ def test_hydro_platinum_empty_fan_names():
 def test_hydro_pro_uses_fan_count():
     device = _fake(HydroPro, _fan_count=3)
     assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2", "fan3"]
+
+
+def test_smart_device_uses_speed_channels_keys():
+    device = _fake(SmartDevice, _speed_channels={"fan1": (0, False)})
+    assert LiquidctlService._get_speed_channels(device) == ["fan1"]
+
+
+def test_smart_device2_missing_attr_returns_empty():
+    assert LiquidctlService._get_speed_channels(_fake(SmartDevice2)) == []
+
+
+@pytest.mark.skipif(
+    Aquacomputer is None, reason="Aquacomputer not in this liquidctl version"
+)
+def test_aquacomputer_uses_fan_ctrl_keys():
+    device = _fake(
+        Aquacomputer, _device_info={"fan_ctrl": {"fan1": None, "fan2": None}}
+    )
+    assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2"]
+
+
+@pytest.mark.skipif(
+    ControlHub is None, reason="ControlHub not in this liquidctl version"
+)
+def test_control_hub_uses_speed_channels_keys():
+    device = _fake(ControlHub, _speed_channels={"fan1": (0, False), "fan2": (1, False)})
+    assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2"]
+
+
+@pytest.mark.skipif(H1V2 is None, reason="H1V2 not in this liquidctl version")
+def test_h1v2_uses_speed_channels_keys():
+    device = _fake(H1V2, _speed_channels={"fan1": (0, False)})
+    assert LiquidctlService._get_speed_channels(device) == ["fan1"]
 
 
 def main():
