@@ -26,6 +26,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FanControl.Liquidctl\FanControl.Liquidctl.csproj" />
+    <Reference Include="FanControl.Plugins">
+      <HintPath>..\FanControl.Liquidctl\ref\FanControl.Plugins.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

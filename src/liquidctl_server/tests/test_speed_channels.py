@@ -1,7 +1,10 @@
+import pytest
 from liquidctl.driver.commander_core import CommanderCore
 from liquidctl.driver.commander_pro import CommanderPro
+from liquidctl.driver.hydro_platinum import HydroPlatinum
+from liquidctl.driver.smart_device import SmartDevice2
 
-from liquidctl_server.service.liquidctl_service import LiquidctlService
+from liquidctl_server.service.liquidctl_service import HydroPro, LiquidctlService
 
 
 def _fake(driver_cls, **attrs):
@@ -30,10 +33,36 @@ def test_unknown_device_has_no_speed_channels():
     assert LiquidctlService._get_speed_channels(object()) == []
 
 
+def test_smart_device2_uses_speed_channels_keys():
+    device = _fake(
+        SmartDevice2, _speed_channels={"fan1": (0, False), "fan2": (1, False)}
+    )
+    assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2"]
+
+
+def test_hydro_platinum_uses_fan_names():
+    device = _fake(HydroPlatinum, _fan_names=["fan1", "fan2"])
+    assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2"]
+
+
+def test_hydro_platinum_empty_fan_names():
+    device = _fake(HydroPlatinum, _fan_names=[])
+    assert LiquidctlService._get_speed_channels(device) == []
+
+
+@pytest.mark.skipif(HydroPro is None, reason="HydroPro not in this liquidctl version")
+def test_hydro_pro_uses_fan_count():
+    device = _fake(HydroPro, _fan_count=3)
+    assert LiquidctlService._get_speed_channels(device) == ["fan1", "fan2", "fan3"]
+
+
 def main():
     test_commander_pro_uses_fan_names()
     test_commander_core_pump_gated_on_has_pump()
     test_unknown_device_has_no_speed_channels()
+    test_smart_device2_uses_speed_channels_keys()
+    test_hydro_platinum_uses_fan_names()
+    test_hydro_platinum_empty_fan_names()
     print("test_speed_channels: OK")
 
 
