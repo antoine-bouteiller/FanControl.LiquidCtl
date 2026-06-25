@@ -1,5 +1,7 @@
 # FanControl.Liquidctl
 
+[![codecov](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl/graph/badge.svg?token=AO71X4SR9R)](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl)
+
 > **Important:** This plugin requires the **.NET 10** version of FanControl. Make sure you are running a FanControl release built on .NET 10.
 
 A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liquidctl) to provide comprehensive sensor data and pump control for various All-in-One (AIO) liquid coolers and smart devices.
