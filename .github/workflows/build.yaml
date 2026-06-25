@@ -161,18 +161,18 @@ jobs:
 
       - name: Run Python Tests
         run: |
-          cd src/liquidctl_server
+          Set-Location .\src\liquidctl_server
           uv sync --group dev
-          uv run pytest tests/ \
-            --junitxml=test-results.xml \
-            --cov=liquidctl_server \
+          uv run pytest tests/ `
+            --junitxml=test-results.xml `
+            --cov=liquidctl_server `
             --cov-report=html:coverage-report
 
       - name: Coverage Summary
         if: always()
         run: |
+          Set-Location .\src\liquidctl_server
           "## Python Coverage" >> $env:GITHUB_STEP_SUMMARY
-          Set-Location src/liquidctl_server
           uv run coverage report --format=markdown >> $env:GITHUB_STEP_SUMMARY
 
       - name: Publish Test Results
