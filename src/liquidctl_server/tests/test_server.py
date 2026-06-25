@@ -71,6 +71,34 @@ class TestMalformedInput:
         assert "Protocol Error" in resp.error
 
 
+class TestSetLed:
+    def test_valid_payload_calls_set_color(self):
+        svc = _mock_service()
+        svc.set_color.return_value = None
+        payload = json.dumps(
+            {
+                "command": "set.led",
+                "data": {
+                    "device": "Kraken X63",
+                    "channel": "ring",
+                    "mode": "fixed",
+                    "colors": [[255, 0, 0], [0, 255, 0]],
+                },
+            }
+        ).encode()
+        resp = _decode(process_request(payload, svc))
+        assert resp.status == MessageStatus.SUCCESS
+        svc.set_color.assert_called_once_with(
+            "Kraken X63", "ring", "fixed", [(255, 0, 0), (0, 255, 0)]
+        )
+
+    def test_null_data_returns_error(self):
+        svc = _mock_service()
+        resp = _decode(process_request(b'{"command":"set.led"}', svc))
+        assert resp.status == MessageStatus.ERROR
+        assert "Missing data" in resp.error
+
+
 class TestHandlerExceptions:
     def test_bad_request_propagates_message(self):
         svc = _mock_service()
