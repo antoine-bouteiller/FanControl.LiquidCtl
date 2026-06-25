@@ -9,6 +9,7 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Temperature Monitoring**: Real-time fluid temperature readings from your AIO cooler
 - **Pump Control**: Adjust pump speeds with precise duty cycle control
 - **Fan Control**: Monitor and control fan speeds on supported devices
+- **RGB Lighting Endpoint**: Exposes a `set.led` command on a dedicated pipe so an external plugin can drive device lighting through the same serialized HID queue as the fans — no USB contention
 - **Wide Device Support**: Compatible with all [liquidctl supported devices](https://github.com/liquidctl/liquidctl#supported-devices)
 - **Seamless Integration**: Works natively with FanControl's interface
 - **Error Recovery**: Automatic refresh and recovery from communication errors
@@ -54,6 +55,27 @@ Once installed, the plugin automatically:
 
 - **Pump Duty**: Adjust pump speed (percentage-based)
 - **Fan Control**: Control fan speeds (where supported)
+
+## RGB Lighting (command sink)
+
+Besides fans and pumps, the bridge exposes an RGB endpoint so another process can drive device lighting **through this plugin**, sharing the one serialized per-device HID queue — so RGB never contends with fan/pump commands on the same USB device (a separate RGB tool fighting for the same HID is the usual cause of dropped commands and stalled control).
+
+- A **dedicated pipe** `LiquidCtlPipeRgb` (separate from the fan pipe, which a client holds open) accepts the `set.led` command.
+- `set.led` applies per-LED colours to a channel of a device matched by description — e.g. the Kraken `ring`/`logo` or the Smart Device `led1`/`led2`.
+
+```json
+{
+  "command": "set.led",
+  "data": {
+    "device": "Kraken",
+    "channel": "ring",
+    "mode": "super-fixed",
+    "colors": [[255, 0, 0], [0, 255, 0], "... one [r,g,b] per LED"]
+  }
+}
+```
+
+This powers the NZXT command sink in [FanControl.Rgb](https://github.com/6wheels/FanControlPlugins): NZXT RGB reacts to FanControl sensors while liquidctl stays the sole owner of the HID.
 
 ## Screenshots
 
