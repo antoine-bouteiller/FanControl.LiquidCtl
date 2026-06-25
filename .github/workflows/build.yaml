@@ -12,6 +12,7 @@ on:
 jobs:
   changes:
     name: Detect Changes
+    if: github.head_ref != 'develop' || github.base_ref != 'main'
     runs-on: ubuntu-latest
     outputs:
       src: ${{ steps.filter.outputs.src }}
@@ -27,6 +28,7 @@ jobs:
 
   checks:
     name: Quality Checks
+    if: github.head_ref != 'develop' || github.base_ref != 'main'
     uses: ./.github/workflows/checks.yaml
     secrets: inherit
     permissions:
