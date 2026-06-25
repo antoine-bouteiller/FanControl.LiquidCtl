@@ -5,7 +5,7 @@ from ctypes import wintypes
 
 import msgspec
 
-from liquidctl_server.models import BridgeResponse, FixedSpeedRequest, PipeRequest
+from liquidctl_server.models import BridgeResponse, PipeRequest
 from liquidctl_server.pipe_server import (
     INVALID_HANDLE_VALUE,
     KERNEL32,
@@ -84,14 +84,14 @@ class TestClient(Base):
         self.close()
         return False
 
-    def sendRequest(
-        self, command: str, data: FixedSpeedRequest | None = None, timeout: float = 5.0
-    ):
+    def sendRequest(self, command: str, data=None, timeout: float = 5.0):
         """Sends a request and returns the decoded BridgeResponse."""
         if not self.alive:
             raise PipeError("Client is not connected")
 
-        req = PipeRequest(command=command, data=data)
+        # data is decoded per-command on the server, so pre-encode it as Raw.
+        raw = msgspec.Raw(msgspec.json.encode(data)) if data is not None else None
+        req = PipeRequest(command=command, data=raw)
         encoded_bytes = msgspec.json.encode(req)
 
         if not self.write(encoded_bytes):
