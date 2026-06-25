@@ -37,6 +37,11 @@
       commitMessageTopic: 'action {{depName}}',
     },
     {
+      matchManagers: ['github-actions'],
+      matchUpdateTypes: ['major'],
+      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
+    },
+    {
       matchManagers: ['npm'],
       addLabels: ['renovate/npm'],
       semanticCommitType: 'chore',
@@ -60,8 +65,6 @@
       semanticCommitScope: 'deps-dev',
     },
     {
-      // Dev-only major bumps aren't breaking for consumers — strip the `!`
-      // so semantic-release doesn't treat them as a breaking release.
       matchUpdateTypes: ['major'],
       matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
       commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
@@ -73,8 +76,6 @@
       semanticCommitScope: 'deps-dev',
     },
     {
-      // Test-only major bumps aren't breaking for consumers — strip the `!`
-      // so semantic-release doesn't treat them as a breaking release.
       matchUpdateTypes: ['major'],
       matchFileNames: ['**/*.Tests.csproj'],
       commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
