@@ -1,3 +1,5 @@
+import logging
+import re
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
 
@@ -259,3 +261,70 @@ class TestInitializeAll:
         with patch.object(svc, "_find_devices", side_effect=fail_then_succeed):
             svc.initialize_all()
             assert call_count == 2
+
+
+def _device(description):
+    dev = MagicMock()
+    dev.description = description
+    return dev
+
+
+class TestFindDevicesFilter:
+    def _run(self, svc, devices, filter_obj):
+        with (
+            patch(
+                "liquidctl_server.service.liquidctl_service.liquidctl"
+                ".find_liquidctl_devices",
+                return_value=devices,
+            ),
+            patch(
+                "liquidctl_server.service.liquidctl_service.load_device_filter",
+                return_value=filter_obj,
+            ),
+            patch.object(svc, "_connect_device"),
+        ):
+            svc._find_devices()
+
+    def test_no_filter_connects_all(self):
+        svc = _make_service()
+        devices = [_device("NZXT Kraken X63"), _device("ASUS Aura LED Controller")]
+
+        self._run(svc, devices, None)
+
+        assert len(svc.devices) == 2
+        svc._executor.set_number_of_devices.assert_called_once_with(2)
+
+    def test_filter_keeps_only_matching(self, caplog):
+        svc = _make_service()
+        aura = _device("ASUS Aura LED Controller")
+        devices = [_device("NZXT Kraken X63"), aura]
+
+        with caplog.at_level(
+            logging.INFO, logger="liquidctl_server.service.liquidctl_service"
+        ):
+            self._run(svc, devices, re.compile("NZXT", re.IGNORECASE))
+
+        assert [d.description for d in svc.devices.values()] == ["NZXT Kraken X63"]
+        svc._executor.set_number_of_devices.assert_called_once_with(1)
+        assert "Devices skipped by filter" in caplog.text
+
+    def test_filter_matching_all_logs_no_skip(self, caplog):
+        svc = _make_service()
+        devices = [_device("NZXT Kraken X63"), _device("NZXT Smart Device V2")]
+
+        with caplog.at_level(
+            logging.INFO, logger="liquidctl_server.service.liquidctl_service"
+        ):
+            self._run(svc, devices, re.compile("NZXT", re.IGNORECASE))
+
+        assert len(svc.devices) == 2
+        assert "Devices skipped by filter" not in caplog.text
+
+    def test_filter_removing_all_returns_early(self):
+        svc = _make_service()
+        devices = [_device("ASUS Aura LED Controller")]
+
+        self._run(svc, devices, re.compile("NZXT", re.IGNORECASE))
+
+        assert svc.devices == {}
+        svc._executor.set_number_of_devices.assert_not_called()
