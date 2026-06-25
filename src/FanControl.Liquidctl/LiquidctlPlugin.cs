@@ -2,13 +2,20 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    public class LiquidCtlPlugin(IPluginLogger logger) : IPlugin2, IDisposable
+    public class LiquidCtlPlugin : IPlugin2, IDisposable
     {
         public string Name => "liquidctl";
 
         private readonly Dictionary<string, DeviceSensor> sensors = [];
-        private readonly LiquidctlClient liquidctl = new(logger);
+        private readonly ILiquidctlClient liquidctl;
         private bool _disposed;
+
+        public LiquidCtlPlugin(IPluginLogger logger) : this(new LiquidctlClient(logger)) { }
+
+        internal LiquidCtlPlugin(ILiquidctlClient client)
+        {
+            liquidctl = client;
+        }
 
         public void Close()
         {

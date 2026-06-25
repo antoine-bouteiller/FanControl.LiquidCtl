@@ -37,6 +37,44 @@ class TestDeviceQueueEmpty:
         assert executor.device_queue_empty(999) is True
 
 
+class TestSetNumberOfDevices:
+    def test_creates_queue_per_device(self):
+        executor = DeviceExecutor()
+        executor.set_number_of_devices(3)
+        try:
+            assert executor.device_queue_empty(1) is True
+            assert executor.device_queue_empty(2) is True
+            assert executor.device_queue_empty(3) is True
+        finally:
+            executor.shutdown()
+
+    def test_zero_devices_creates_no_queues(self):
+        executor = DeviceExecutor()
+        executor.set_number_of_devices(0)
+        assert executor.device_queue_empty(1) is True
+
+
+class TestSubmitAndShutdown:
+    def test_submit_runs_job_and_returns_result(self):
+        executor = DeviceExecutor()
+        executor.set_number_of_devices(1)
+        try:
+            future = executor.submit(1, lambda x: x + 1, x=41)
+            assert future.result(timeout=2.0) == 42
+        finally:
+            executor.shutdown()
+
+    def test_shutdown_drains_and_joins(self):
+        executor = DeviceExecutor()
+        executor.set_number_of_devices(2)
+        executor.submit(1, lambda: None)
+        executor.submit(2, lambda: None)
+
+        executor.shutdown()
+
+        assert executor.device_queue_empty(1) is True
+
+
 class TestQueueWorker:
     def test_none_sentinel_terminates_worker(self):
         q = queue.SimpleQueue()
