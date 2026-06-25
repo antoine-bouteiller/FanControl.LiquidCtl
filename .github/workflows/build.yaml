@@ -68,9 +68,18 @@ jobs:
           $f = Get-ChildItem .\src\FanControl.Liquidctl.Tests\TestResults -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
           if ($f) {
             $xml = [xml](Get-Content $f.FullName)
-            $line = [math]::Round([double]$xml.coverage.'line-rate' * 100, 1)
-            $branch = [math]::Round([double]$xml.coverage.'branch-rate' * 100, 1)
-            "## .NET Coverage`n- Lines: $line%`n- Branches: $branch%" >> $env:GITHUB_STEP_SUMMARY
+            $totalLine = [math]::Round([double]$xml.coverage.'line-rate' * 100, 1)
+            $totalBranch = [math]::Round([double]$xml.coverage.'branch-rate' * 100, 1)
+            "## .NET Coverage" >> $env:GITHUB_STEP_SUMMARY
+            "| File | Lines | Branches |" >> $env:GITHUB_STEP_SUMMARY
+            "|------|------:|---------:|" >> $env:GITHUB_STEP_SUMMARY
+            $xml.coverage.packages.package.classes.class | ForEach-Object {
+              $name = [System.IO.Path]::GetFileName($_.filename)
+              $line = [math]::Round([double]$_.'line-rate' * 100, 1)
+              $branch = [math]::Round([double]$_.'branch-rate' * 100, 1)
+              "| $name | $line% | $branch% |" >> $env:GITHUB_STEP_SUMMARY
+            }
+            "| **TOTAL** | **$totalLine%** | **$totalBranch%** |" >> $env:GITHUB_STEP_SUMMARY
           }
 
       - name: Generate Coverage Report
