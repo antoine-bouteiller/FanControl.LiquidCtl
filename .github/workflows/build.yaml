@@ -58,6 +58,20 @@ jobs:
             "## .NET Coverage`n- Lines: $line%`n- Branches: $branch%" >> $env:GITHUB_STEP_SUMMARY
           }
 
+      - name: Generate Coverage Report
+        if: always()
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator "-reports:src\FanControl.Liquidctl.Tests\TestResults\**\coverage.cobertura.xml" "-targetdir:src\FanControl.Liquidctl.Tests\coverage-report" -reporttypes:Html
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: dotnet-coverage-report
+          path: src/FanControl.Liquidctl.Tests/coverage-report/
+          retention-days: 30
+
       - name: Publish Test Results
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always()
