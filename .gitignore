@@ -10,6 +10,10 @@ obj
 __pycache__
 build
 dist
+.coverage
+coverage.xml
+coverage-report/
+test-results.xml
 
 # Claude
 settings.local.json

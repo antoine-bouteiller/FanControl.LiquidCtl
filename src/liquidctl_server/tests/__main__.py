@@ -1,3 +1,3 @@
-from tests.test import main
+from tests.manual.test import main
 
 main()
