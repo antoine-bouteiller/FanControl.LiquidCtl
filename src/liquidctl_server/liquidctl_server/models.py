@@ -25,9 +25,21 @@ class FixedSpeedRequest(msgspec.Struct):
     speed_kwargs: SpeedKwargs
 
 
+class LedRequest(msgspec.Struct):
+    # device is matched against each liquidctl device's description (the RGB
+    # plugin targets devices by name, not by integer id).
+    device: str
+    channel: str
+    mode: str
+    colors: List[List[int]]
+
+
 class PipeRequest(msgspec.Struct):
     command: str
-    data: Optional[FixedSpeedRequest] = None
+    # Decoded per-command (each command has its own payload shape). Kept as a
+    # bare Raw, not Optional[Raw]: msgspec drops the Raw arm of Optional[Raw] and
+    # would then reject any non-null data. Absent/null decodes to Raw(b"null").
+    data: msgspec.Raw = msgspec.Raw(b"null")
 
 
 class BridgeResponse(msgspec.Struct):
