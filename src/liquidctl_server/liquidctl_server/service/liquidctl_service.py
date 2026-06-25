@@ -307,11 +307,15 @@ class LiquidctlService:
         device_id = self._resolve_device_id(device_match)
         if device_id is None:
             known = [d.description for d in self.devices.values()]
-            logger.error("set_color: no device matching %r (known: %s)", device_match, known)
+            logger.error(
+                "set_color: no device matching %r (known: %s)", device_match, known
+            )
             raise BadRequestException(f"No device matching '{device_match}'")
 
         lc_device = self.devices[device_id]
-        logger.info("set_color: resolved device #%d -> %s", device_id, lc_device.description)
+        logger.info(
+            "set_color: resolved device #%d -> %s", device_id, lc_device.description
+        )
 
         try:
             color_job = self._executor.submit(
@@ -323,7 +327,10 @@ class LiquidctlService:
             )
             color_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
             logger.info(
-                "set_color: applied channel=%r mode=%r on device #%d", channel, mode, device_id
+                "set_color: applied channel=%r mode=%r on device #%d",
+                channel,
+                mode,
+                device_id,
             )
 
         except FuturesTimeoutError:
@@ -393,7 +400,7 @@ class LiquidctlService:
         for status in statuses:
             try:
                 value = float(status[1])
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 value = None
 
             result.append(
