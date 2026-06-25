@@ -10,6 +10,21 @@ on:
       - .github/workflows/*.yaml
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'src/FanControl.Liquidctl/**'
+              - 'src/liquidctl_server/**'
+
   check-dotnet:
     name: Check Dotnet
     runs-on: windows-latest
@@ -151,6 +166,8 @@ jobs:
 
   build:
     name: Build
+    needs: [changes]
+    if: needs.changes.outputs.src == 'true'
     runs-on: windows-latest
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
