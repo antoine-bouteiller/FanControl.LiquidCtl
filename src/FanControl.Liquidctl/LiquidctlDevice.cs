@@ -28,12 +28,12 @@ namespace FanControl.LiquidCtl
     public class ControlSensor : DeviceSensor, IPluginControlSensor2
     {
         internal float? Initial { get; }
-        private readonly LiquidctlClient liquidctl;
+        private readonly ILiquidctlClient liquidctl;
         private readonly string channelName;
 
         public string? PairedFanSensorId { get; }
 
-        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
+        internal ControlSensor(DeviceStatus device, StatusValue channel, ILiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
             base(device, channel)
         {
             Initial = Value;
