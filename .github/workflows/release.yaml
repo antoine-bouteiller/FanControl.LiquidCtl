@@ -8,8 +8,16 @@ on:
       - develop
 
 jobs:
+  checks:
+    name: Quality Checks
+    uses: ./.github/workflows/checks.yaml
+    permissions:
+      checks: write
+      pull-requests: write
+
   release:
     name: Release
+    needs: [checks]
     runs-on: windows-latest
     permissions:
       contents: write
