@@ -30,6 +30,8 @@ jobs:
   check-dotnet-tests:
     name: Dotnet Tests
     runs-on: windows-latest
+    permissions:
+      code-quality: write
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -42,7 +44,17 @@ jobs:
       - name: Run .NET Tests
         run: |
           Set-Location .\src\FanControl.Liquidctl.Tests
-          dotnet test -c Release --logger "console;verbosity=normal"
+          dotnet test -c Release --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --results-directory TestResults
+          $file = Get-ChildItem -Path TestResults -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1 -ExpandProperty FullName
+          echo "DOTNET_COVERAGE_FILE=$file" >> $env:GITHUB_ENV
+
+      - name: Upload Code Coverage
+        uses: actions/upload-code-coverage@abb5995db9e0199b0e2bb9dbd136fce4cb1ec4d3 # v1.3.0
+        if: always()
+        with:
+          file: ${{ env.DOTNET_COVERAGE_FILE }}
+          language: C#
+          label: dotnet-coverage
 
   check-python:
     name: Check Python
@@ -98,14 +110,6 @@ jobs:
           file: src/liquidctl_server/coverage.xml
           language: Python
           label: python-coverage
-
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: python-coverage-report
-          path: src/liquidctl_server/coverage-report/
-          retention-days: 30
 
   build:
     name: Build
