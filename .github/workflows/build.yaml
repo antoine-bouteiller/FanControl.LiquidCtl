@@ -24,7 +24,7 @@ jobs:
           filters: |
             src:
               - 'src/FanControl.Liquidctl/**'
-              - 'src/liquidctl_server/**'
+              - 'src/liquidctl_server/liquidctl_server/**'
 
   checks:
     name: Quality Checks
