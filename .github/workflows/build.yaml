@@ -68,18 +68,33 @@ jobs:
           $f = Get-ChildItem .\src\FanControl.Liquidctl.Tests\TestResults -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
           if ($f) {
             $xml = [xml](Get-Content $f.FullName)
-            $totalLine = [math]::Round([double]$xml.coverage.'line-rate' * 100, 1)
-            $totalBranch = [math]::Round([double]$xml.coverage.'branch-rate' * 100, 1)
+            $classes = @($xml.coverage.packages.package.classes.class) | Where-Object { $_.filename -notmatch '\.g\.cs$' }
+            $allLines = @($classes | ForEach-Object { $_.lines.line }) | Where-Object { $_ }
+            $tl = $allLines.Count
+            $cl = ($allLines | Where-Object { [int]$_.hits -gt 0 }).Count
+            $totalLinePct = if ($tl -gt 0) { [math]::Round($cl / $tl * 100, 1) } else { 0.0 }
+            $bLines = $allLines | Where-Object { $_.branch -eq 'true' }
+            $tb = 0; $cb = 0
+            foreach ($bl in $bLines) {
+              if ($bl.'condition-coverage' -match '\((\d+)/(\d+)\)') { $cb += [int]$Matches[1]; $tb += [int]$Matches[2] }
+            }
+            $totalBranchPct = if ($tb -gt 0) { [math]::Round($cb / $tb * 100, 1) } else { 100.0 }
             "## .NET Coverage" >> $env:GITHUB_STEP_SUMMARY
             "| File | Lines | Branches |" >> $env:GITHUB_STEP_SUMMARY
             "|------|------:|---------:|" >> $env:GITHUB_STEP_SUMMARY
-            $xml.coverage.packages.package.classes.class | ForEach-Object {
-              $name = [System.IO.Path]::GetFileName($_.filename)
-              $line = [math]::Round([double]$_.'line-rate' * 100, 1)
-              $branch = [math]::Round([double]$_.'branch-rate' * 100, 1)
-              "| $name | $line% | $branch% |" >> $env:GITHUB_STEP_SUMMARY
+            $classes | Group-Object { [System.IO.Path]::GetFileName($_.filename) } | Sort-Object Name | ForEach-Object {
+              $fl = @($_.Group | ForEach-Object { $_.lines.line }) | Where-Object { $_ }
+              $ft = $fl.Count; $fc = ($fl | Where-Object { [int]$_.hits -gt 0 }).Count
+              $flPct = if ($ft -gt 0) { [math]::Round($fc / $ft * 100, 1) } else { 0.0 }
+              $fbl = $fl | Where-Object { $_.branch -eq 'true' }
+              $fbt = 0; $fbc = 0
+              foreach ($bl in $fbl) {
+                if ($bl.'condition-coverage' -match '\((\d+)/(\d+)\)') { $fbc += [int]$Matches[1]; $fbt += [int]$Matches[2] }
+              }
+              $fbPct = if ($fbt -gt 0) { [math]::Round($fbc / $fbt * 100, 1) } else { 100.0 }
+              "| $($_.Name) | $flPct% | $fbPct% |" >> $env:GITHUB_STEP_SUMMARY
             }
-            "| **TOTAL** | **$totalLine%** | **$totalBranch%** |" >> $env:GITHUB_STEP_SUMMARY
+            "| **TOTAL** | **$totalLinePct%** | **$totalBranchPct%** |" >> $env:GITHUB_STEP_SUMMARY
           }
 
       - name: Generate Coverage Report
