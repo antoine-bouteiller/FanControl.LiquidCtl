@@ -62,7 +62,8 @@ jobs:
         if: always()
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
-          reportgenerator "-reports:src\FanControl.Liquidctl.Tests\TestResults\**\coverage.cobertura.xml" "-targetdir:src\FanControl.Liquidctl.Tests\coverage-report" -reporttypes:Html
+          $f = Get-ChildItem .\src\FanControl.Liquidctl.Tests\TestResults -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1 -ExpandProperty FullName
+          reportgenerator "-reports:$f" "-targetdir:src\FanControl.Liquidctl.Tests\coverage-report" -reporttypes:Html
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
