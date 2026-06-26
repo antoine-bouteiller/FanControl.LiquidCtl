@@ -1,5 +1,7 @@
 # FanControl.Liquidctl
 
+[![codecov](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl/graph/badge.svg?token=AO71X4SR9R)](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl)
+
 > **Important:** This plugin requires the **.NET 10** version of FanControl. Make sure you are running a FanControl release built on .NET 10.
 
 A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liquidctl) to provide comprehensive sensor data and pump control for various All-in-One (AIO) liquid coolers and smart devices.
@@ -9,10 +11,12 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Temperature Monitoring**: Real-time fluid temperature readings from your AIO cooler
 - **Pump Control**: Adjust pump speeds with precise duty cycle control
 - **Fan Control**: Monitor and control fan speeds on supported devices
+- **RGB Lighting Endpoint**: Exposes a `set.led` command on a dedicated pipe so an external plugin can drive device lighting through the same serialized HID queue as the fans — no USB contention
 - **Wide Device Support**: Compatible with all [liquidctl supported devices](https://github.com/liquidctl/liquidctl#supported-devices)
 - **Seamless Integration**: Works natively with FanControl's interface
 - **Error Recovery**: Automatic refresh and recovery from communication errors
 - **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors
+- **Device Filtering**: Optionally restrict which devices the plugin claims, leaving the rest free for other tools (e.g. OpenRGB)
 
 ## Tested Devices
 
@@ -55,6 +59,46 @@ Once installed, the plugin automatically:
 - **Pump Duty**: Adjust pump speed (percentage-based)
 - **Fan Control**: Control fan speeds (where supported)
 
+## RGB Lighting (command sink)
+
+Besides fans and pumps, the bridge exposes an RGB endpoint so another process can drive device lighting **through this plugin**, sharing the one serialized per-device HID queue — so RGB never contends with fan/pump commands on the same USB device (a separate RGB tool fighting for the same HID is the usual cause of dropped commands and stalled control).
+
+- A **dedicated pipe** `LiquidCtlPipeRgb` (separate from the fan pipe, which a client holds open) accepts the `set.led` command.
+- `set.led` applies per-LED colours to a channel of a device matched by description — e.g. the Kraken `ring`/`logo` or the Smart Device `led1`/`led2`.
+
+```json
+{
+  "command": "set.led",
+  "data": {
+    "device": "Kraken",
+    "channel": "ring",
+    "mode": "super-fixed",
+    "colors": [[255, 0, 0], [0, 255, 0], "... one [r,g,b] per LED"]
+  }
+}
+```
+
+This powers the NZXT command sink in [FanControl.Rgb](https://github.com/6wheels/FanControlPlugins): NZXT RGB reacts to FanControl sensors while liquidctl stays the sole owner of the HID.
+
+### Filtering Devices
+
+By default the plugin claims **every** liquidctl-supported device it finds. Since
+claiming a device takes exclusive ownership of it, this can prevent other tools
+(such as OpenRGB controlling an ASUS Aura controller) from using it.
+
+To limit which devices the plugin connects to, drop a file named
+`liquidctl_filter.txt` in the plugin folder (the same folder that contains the
+plugin `.dll`). Its first non-empty line is used as a **case-insensitive regex**
+matched against each device's description; only matching devices are connected,
+the rest are left untouched. Lines starting with `#` are treated as comments.
+
+```text
+# liquidctl_filter.txt — only connect NZXT devices
+NZXT
+```
+
+If the file is absent or empty, all devices are connected (default behavior).
+
 ## Screenshots
 
 ![Fluid temperature sensor](/docs/images/FluidTemp.png)
@@ -74,6 +118,11 @@ Once installed, the plugin automatically:
 - Verify your device is [supported by liquidctl](https://github.com/liquidctl/liquidctl#supported-devices)
 - Try running liquidctl directly from command line to test device connectivity
 - Check Windows Device Manager for any driver issues
+- If you added a `liquidctl_filter.txt`, make sure its regex matches your device description (see [Filtering Devices](#filtering-devices))
+
+### Device Conflicts With Other Tools
+
+- If another tool (e.g. OpenRGB) can no longer control a device after the plugin starts, the plugin has claimed it. Use a [`liquidctl_filter.txt`](#filtering-devices) to exclude that device instead of relying on application start order
 
 ### Communication Errors
 

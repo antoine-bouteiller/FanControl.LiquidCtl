@@ -16,6 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="JunitXml.TestLogger" Version="3.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -26,6 +28,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FanControl.Liquidctl\FanControl.Liquidctl.csproj" />
+    <Reference Include="FanControl.Plugins">
+      <HintPath>..\FanControl.Liquidctl\ref\FanControl.Plugins.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

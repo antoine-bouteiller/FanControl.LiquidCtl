@@ -10,63 +10,35 @@ on:
       - .github/workflows/*.yaml
 
 jobs:
-  check-dotnet:
-    name: Check Dotnet
-    runs-on: windows-latest
+  changes:
+    name: Detect Changes
+    if: github.head_ref != 'develop' || github.base_ref != 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
         with:
-          dotnet-version: '10.0.x'
+          filters: |
+            src:
+              - 'src/FanControl.Liquidctl/**'
+              - 'src/liquidctl_server/liquidctl_server/**'
 
-      - name: Build .NET Plugin
-        run: |
-          Set-Location .\src\FanControl.Liquidctl
-          dotnet build -c Release
-
-  check-dotnet-tests:
-    name: Dotnet Tests
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Run .NET Tests
-        run: |
-          Set-Location .\src\FanControl.Liquidctl.Tests
-          dotnet test -c Release --logger "console;verbosity=normal"
-
-  check-python:
-    name: Check Python
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Install Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: '3.14'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-
-      - name: Lint Python Bridge
-        run: |
-          Set-Location .\src\liquidctl_server
-          uv sync
-          uv run ruff check
+  checks:
+    name: Quality Checks
+    if: github.head_ref != 'develop' || github.base_ref != 'main'
+    uses: ./.github/workflows/checks.yaml
+    secrets: inherit
+    permissions:
+      checks: write
+      pull-requests: write
 
   build:
     name: Build
+    needs: [changes, checks]
+    if: needs.changes.outputs.src == 'true'
     runs-on: windows-latest
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
@@ -78,7 +50,7 @@ jobs:
           echo "artifact-name=$artifactName" >> $env:GITHUB_OUTPUT
 
       - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0

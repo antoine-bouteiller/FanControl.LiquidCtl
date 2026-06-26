@@ -28,17 +28,17 @@ namespace FanControl.LiquidCtl
     public class ControlSensor : DeviceSensor, IPluginControlSensor2
     {
         internal float? Initial { get; }
-        private readonly LiquidctlClient liquidctl;
+        private readonly ILiquidctlClient liquidctl;
         private readonly string channelName;
 
         public string? PairedFanSensorId { get; }
 
-        internal ControlSensor(DeviceStatus device, StatusValue channel, LiquidctlClient liquidctl, string? pairedFanSensorId) :
+        internal ControlSensor(DeviceStatus device, StatusValue channel, ILiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
             base(device, channel)
         {
             Initial = Value;
             this.liquidctl = liquidctl;
-            channelName = Utils.ExtractChannelName(channel.Key);
+            channelName = explicitChannelName ?? Utils.ExtractChannelName(channel.Key);
             PairedFanSensorId = pairedFanSensorId;
         }
 

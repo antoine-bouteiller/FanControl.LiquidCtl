@@ -7,7 +7,7 @@ from liquidctl_server.models import (
     MessageStatus,
     SpeedKwargs,
 )
-from tests.test_client import TestClient
+from tests.manual.test_client import TestClient
 
 pipe_name = "LiquidCtlPipeTest"
 

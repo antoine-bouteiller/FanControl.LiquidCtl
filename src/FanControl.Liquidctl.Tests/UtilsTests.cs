@@ -198,4 +198,24 @@ namespace FanControl.LiquidCtl.Tests
             Assert.Equal("fan1", Utils.ExtractChannelName("Fan 1 speed"));
         }
     }
+
+    public sealed class UtilsGetDutyKeyFromSpeedKeyTests
+    {
+        [Theory]
+        // Real speed (rpm) keys -> their paired duty key
+        [InlineData("Pump speed", "Pump duty")]
+        [InlineData("Fan 1 speed", "Fan 1 duty")]
+        [InlineData("Water block speed", "Water block duty")]
+        [InlineData("Pump fan speed", "Pump fan duty")]
+        [InlineData("External fan speed", "External fan duty")]
+        [InlineData("Fan speed 1", "Fan duty 1")] // Corsair Commander Core ordering
+        // No "speed" present -> passthrough
+        [InlineData("Liquid temperature", "Liquid temperature")]
+        [InlineData("", "")]
+        public void GetDutyKeyFromSpeedKey_ReplacesSpeedWordBoundaryWithDuty(
+            string speedKey, string expected)
+        {
+            Assert.Equal(expected, Utils.GetDutyKeyFromSpeedKey(speedKey));
+        }
+    }
 }

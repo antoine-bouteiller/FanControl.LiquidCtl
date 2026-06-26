@@ -4,6 +4,34 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import liquidctl
 from liquidctl.driver.base import BaseDriver
+from liquidctl.driver.commander_pro import CommanderPro
+from liquidctl.driver.hydro_platinum import HydroPlatinum
+from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
+
+try:
+    from liquidctl.driver.aquacomputer import Aquacomputer
+except ImportError:
+    Aquacomputer = None
+
+try:
+    from liquidctl.driver.commander_core import CommanderCore
+except ImportError:
+    CommanderCore = None
+
+try:
+    from liquidctl.driver.smart_device import H1V2
+except ImportError:
+    H1V2 = None
+
+try:
+    from liquidctl.driver.smart_device import ControlHub
+except ImportError:
+    ControlHub = None
+
+try:
+    from liquidctl.driver.hydro_pro import HydroPro
+except ImportError:
+    HydroPro = None
 
 from liquidctl_server.models import (
     BadRequestException,
@@ -15,6 +43,7 @@ from liquidctl_server.service.config import (
     DEVICE_OPERATION_TIMEOUT,
     DEVICE_STATUS_TIMEOUT,
     MAX_INIT_RETRIES,
+    load_device_filter,
 )
 from liquidctl_server.service.executor import DeviceExecutor
 
@@ -27,6 +56,7 @@ class LiquidctlService:
     def __init__(self) -> None:
         self.devices: Dict[int, BaseDriver] = {}
         self.device_status_cache: Dict[int, List[StatusValue]] = {}
+        self.speed_channels: Dict[int, List[str]] = {}
         self.previous_duty: Dict[str, Union[str, int, None]] = {}
         self._executor: DeviceExecutor = DeviceExecutor()
 
@@ -70,6 +100,18 @@ class LiquidctlService:
             logger.info("No Liquidctl devices detected")
             return
 
+        device_filter = load_device_filter()
+        if device_filter is not None:
+            kept = [d for d in found_devices if device_filter.search(d.description)]
+            skipped = [d.description for d in found_devices if d not in kept]
+            if skipped:
+                logger.info(f"Devices skipped by filter: {skipped}")
+            found_devices = kept
+
+        if not found_devices:
+            logger.info("No Liquidctl devices left after filtering")
+            return
+
         self._executor.set_number_of_devices(len(found_devices))
 
         for index, lc_device in enumerate(found_devices):
@@ -93,6 +135,8 @@ class LiquidctlService:
 
             init_job = self._executor.submit(device_id, lc_device.initialize)
             init_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
+
+            self.speed_channels[device_id] = self._get_speed_channels(lc_device)
 
         except RuntimeError as err:
             if "already open" in str(err):
@@ -123,11 +167,7 @@ class LiquidctlService:
             status_values = self._stringify_status(raw_status)
             self.device_status_cache[device_id] = status_values
 
-            return DeviceStatus(
-                id=device_id,
-                description=lc_device.description,
-                status=status_values,
-            )
+            return self._build_device_status(device_id, lc_device, status_values)
 
         except FuturesTimeoutError:
             return self._handle_status_timeout(device_id, lc_device)
@@ -171,11 +211,7 @@ class LiquidctlService:
         status_values = self._stringify_status(raw_status)
         self.device_status_cache[device_id] = status_values
 
-        return DeviceStatus(
-            id=device_id,
-            description=lc_device.description,
-            status=status_values,
-        )
+        return self._build_device_status(device_id, lc_device, status_values)
 
     def _build_status_from_cache(
         self, device_id: int, lc_device: BaseDriver
@@ -185,10 +221,16 @@ class LiquidctlService:
         if cached is None:
             return None
 
+        return self._build_device_status(device_id, lc_device, cached)
+
+    def _build_device_status(
+        self, device_id: int, lc_device: BaseDriver, status_values: List[StatusValue]
+    ) -> DeviceStatus:
         return DeviceStatus(
             id=device_id,
             description=lc_device.description,
-            status=cached,
+            status=status_values,
+            speed_channels=self.speed_channels.get(device_id, []),
         )
 
     def set_fixed_speed(
@@ -218,6 +260,104 @@ class LiquidctlService:
         except Exception as e:
             logger.error(f"Error setting fixed speed for device #{device_id}: {e}")
 
+    def log_device_details(self) -> None:
+        """Dump everything useful about each device for RGB/debug troubleshooting."""
+        introspect = (
+            "_color_channels",
+            "_color_modes",
+            "_speed_channels",
+            "_mled_count",
+            "_led_count",
+            "_fan_count",
+            "_animation_speeds",
+            "_mled",
+        )
+        logger.info("=== Device inventory (%d device(s)) ===", len(self.devices))
+        for device_id, dev in self.devices.items():
+            logger.info(
+                "Device #%d: %s  [driver=%s, vid=%04x, pid=%04x]",
+                device_id,
+                dev.description,
+                type(dev).__name__,
+                getattr(dev, "vendor_id", 0) or 0,
+                getattr(dev, "product_id", 0) or 0,
+            )
+            for attr in introspect:
+                if hasattr(dev, attr):
+                    try:
+                        value = getattr(dev, attr)
+                    except Exception as exc:  # pragma: no cover - defensive
+                        value = f"<error: {exc}>"
+                    logger.info("    %s = %r", attr, value)
+        logger.info("=== End device inventory ===")
+
+    def _resolve_device_id(self, device_match: str) -> Optional[int]:
+        """Find a device id whose description contains device_match (case-insensitive)."""
+        needle = device_match.lower()
+        for device_id, lc_device in self.devices.items():
+            if needle in lc_device.description.lower():
+                return device_id
+        return None
+
+    def set_color(
+        self,
+        device_match: str,
+        channel: str,
+        mode: str,
+        colors: List[Tuple[int, int, int]],
+    ) -> None:
+        """Set per-LED colors for a device channel via the serialized queue."""
+        logger.info(
+            "set_color RX: device_match=%r channel=%r mode=%r ncolors=%d first=%s last=%s",
+            device_match,
+            channel,
+            mode,
+            len(colors),
+            colors[0] if colors else None,
+            colors[-1] if colors else None,
+        )
+
+        device_id = self._resolve_device_id(device_match)
+        if device_id is None:
+            known = [d.description for d in self.devices.values()]
+            logger.error(
+                "set_color: no device matching %r (known: %s)", device_match, known
+            )
+            raise BadRequestException(f"No device matching '{device_match}'")
+
+        lc_device = self.devices[device_id]
+        logger.info(
+            "set_color: resolved device #%d -> %s", device_id, lc_device.description
+        )
+
+        try:
+            color_job = self._executor.submit(
+                device_id,
+                lc_device.set_color,
+                channel=channel,
+                mode=mode,
+                colors=colors,
+            )
+            color_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
+            logger.info(
+                "set_color: applied channel=%r mode=%r on device #%d",
+                channel,
+                mode,
+                device_id,
+            )
+
+        except FuturesTimeoutError:
+            logger.error(f"Timeout setting color for device #{device_id}")
+        except Exception as e:
+            logger.exception(
+                "set_color FAILED on device #%d (channel=%r mode=%r ncolors=%d): %s",
+                device_id,
+                channel,
+                mode,
+                len(colors),
+                e,
+            )
+
     def disconnect_all(self) -> None:
         """Disconnect all devices."""
         for device_id, lc_device in self.devices.items():
@@ -233,7 +373,33 @@ class LiquidctlService:
         self._executor.shutdown()
         self.devices.clear()
         self.device_status_cache.clear()
+        self.speed_channels.clear()
         self.previous_duty.clear()
+
+    @staticmethod
+    def _get_speed_channels(lc_device: BaseDriver) -> List[str]:
+        """Controllable speed channels reported by the driver (no uniform API exists)."""
+
+        def is_a(driver_cls) -> bool:
+            return driver_cls is not None and isinstance(lc_device, driver_cls)
+
+        if (
+            isinstance(lc_device, (SmartDevice2, SmartDevice))
+            or is_a(ControlHub)
+            or is_a(H1V2)
+        ):
+            return list(getattr(lc_device, "_speed_channels", {}).keys())
+        if is_a(Aquacomputer):
+            return list(
+                getattr(lc_device, "_device_info", {}).get("fan_ctrl", {}).keys()
+            )
+        if is_a(CommanderCore):
+            return ["pump"] if getattr(lc_device, "_has_pump", False) else []
+        if isinstance(lc_device, (CommanderPro, HydroPlatinum)):
+            return list(getattr(lc_device, "_fan_names", []))
+        if is_a(HydroPro):
+            return [f"fan{i + 1}" for i in range(getattr(lc_device, "_fan_count", 0))]
+        return []
 
     @staticmethod
     def _stringify_status(
