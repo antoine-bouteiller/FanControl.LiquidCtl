@@ -43,6 +43,7 @@ from liquidctl_server.service.config import (
     DEVICE_OPERATION_TIMEOUT,
     DEVICE_STATUS_TIMEOUT,
     MAX_INIT_RETRIES,
+    load_device_filter,
 )
 from liquidctl_server.service.executor import DeviceExecutor
 
@@ -97,6 +98,18 @@ class LiquidctlService:
 
         if not found_devices:
             logger.info("No Liquidctl devices detected")
+            return
+
+        device_filter = load_device_filter()
+        if device_filter is not None:
+            kept = [d for d in found_devices if device_filter.search(d.description)]
+            skipped = [d.description for d in found_devices if d not in kept]
+            if skipped:
+                logger.info(f"Devices skipped by filter: {skipped}")
+            found_devices = kept
+
+        if not found_devices:
+            logger.info("No Liquidctl devices left after filtering")
             return
 
         self._executor.set_number_of_devices(len(found_devices))

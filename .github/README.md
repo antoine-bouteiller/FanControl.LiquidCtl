@@ -16,6 +16,7 @@ A FanControl plugin that integrates [liquidctl](https://github.com/liquidctl/liq
 - **Seamless Integration**: Works natively with FanControl's interface
 - **Error Recovery**: Automatic refresh and recovery from communication errors
 - **Auto-Linking**: Automatically pairs control sensors with their corresponding speed sensors
+- **Device Filtering**: Optionally restrict which devices the plugin claims, leaving the rest free for other tools (e.g. OpenRGB)
 
 ## Tested Devices
 
@@ -79,6 +80,25 @@ Besides fans and pumps, the bridge exposes an RGB endpoint so another process ca
 
 This powers the NZXT command sink in [FanControl.Rgb](https://github.com/6wheels/FanControlPlugins): NZXT RGB reacts to FanControl sensors while liquidctl stays the sole owner of the HID.
 
+### Filtering Devices
+
+By default the plugin claims **every** liquidctl-supported device it finds. Since
+claiming a device takes exclusive ownership of it, this can prevent other tools
+(such as OpenRGB controlling an ASUS Aura controller) from using it.
+
+To limit which devices the plugin connects to, drop a file named
+`liquidctl_filter.txt` in the plugin folder (the same folder that contains the
+plugin `.dll`). Its first non-empty line is used as a **case-insensitive regex**
+matched against each device's description; only matching devices are connected,
+the rest are left untouched. Lines starting with `#` are treated as comments.
+
+```text
+# liquidctl_filter.txt — only connect NZXT devices
+NZXT
+```
+
+If the file is absent or empty, all devices are connected (default behavior).
+
 ## Screenshots
 
 ![Fluid temperature sensor](/docs/images/FluidTemp.png)
@@ -98,6 +118,11 @@ This powers the NZXT command sink in [FanControl.Rgb](https://github.com/6wheels
 - Verify your device is [supported by liquidctl](https://github.com/liquidctl/liquidctl#supported-devices)
 - Try running liquidctl directly from command line to test device connectivity
 - Check Windows Device Manager for any driver issues
+- If you added a `liquidctl_filter.txt`, make sure its regex matches your device description (see [Filtering Devices](#filtering-devices))
+
+### Device Conflicts With Other Tools
+
+- If another tool (e.g. OpenRGB) can no longer control a device after the plugin starts, the plugin has claimed it. Use a [`liquidctl_filter.txt`](#filtering-devices) to exclude that device instead of relying on application start order
 
 ### Communication Errors
 
