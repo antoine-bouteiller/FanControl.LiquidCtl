@@ -5,7 +5,7 @@ import time
 from ctypes import wintypes
 from typing import Optional
 
-from liquidctl_server.models import Mode, PipeError
+from liquidctl_server.models import PipeError
 
 # --- Win32 API Definitions ---
 KERNEL32 = ctypes.windll.kernel32
@@ -73,8 +73,7 @@ logger = logging.getLogger(__name__)
 
 
 class Base:
-    def __init__(self, mode: int = Mode.SLAVE):
-        self.mode = mode
+    def __init__(self) -> None:
         self.handle: Optional[int] = None
         self._io_lock = threading.Lock()
 
@@ -152,7 +151,7 @@ class Base:
 
 class Server(Base):
     def __init__(self, name: str) -> None:
-        super().__init__(Mode.SLAVE)
+        super().__init__()
         self.name = name
         self.pipe_path = f"\\\\.\\pipe\\{self.name}"
 

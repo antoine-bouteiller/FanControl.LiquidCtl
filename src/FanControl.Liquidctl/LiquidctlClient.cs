@@ -24,15 +24,8 @@ namespace FanControl.LiquidCtl
         private NamedPipeClientStream? _pipeClient;
         private readonly object _lock = new();
 
-        private ConnectionState _state = ConnectionState.Disconnected;
         private CachedStatuses? _cachedStatuses;
         private bool _disposed;
-
-        public ConnectionState State
-        {
-            get { lock (_lock) return _state; }
-            private set { lock (_lock) _state = value; }
-        }
 
         public void Init()
         {
@@ -40,7 +33,6 @@ namespace FanControl.LiquidCtl
             {
                 if (TryInitialize())
                 {
-                    State = ConnectionState.Ready;
                     return;
                 }
 
@@ -48,8 +40,6 @@ namespace FanControl.LiquidCtl
                 Cleanup();
                 Thread.Sleep(BridgeConfig.RetryDelayMs);
             }
-
-            State = ConnectionState.Faulted;
         }
 
         private bool TryInitialize()
