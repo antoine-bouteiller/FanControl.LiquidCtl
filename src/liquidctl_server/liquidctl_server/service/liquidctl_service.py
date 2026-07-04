@@ -1,37 +1,10 @@
 import logging
+import time
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Dict, List, Optional, Tuple, Union
 
 import liquidctl
 from liquidctl.driver.base import BaseDriver
-from liquidctl.driver.commander_pro import CommanderPro
-from liquidctl.driver.hydro_platinum import HydroPlatinum
-from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
-
-try:
-    from liquidctl.driver.aquacomputer import Aquacomputer
-except ImportError:
-    Aquacomputer = None
-
-try:
-    from liquidctl.driver.commander_core import CommanderCore
-except ImportError:
-    CommanderCore = None
-
-try:
-    from liquidctl.driver.smart_device import H1V2
-except ImportError:
-    H1V2 = None
-
-try:
-    from liquidctl.driver.smart_device import ControlHub
-except ImportError:
-    ControlHub = None
-
-try:
-    from liquidctl.driver.hydro_pro import HydroPro
-except ImportError:
-    HydroPro = None
 
 from liquidctl_server.models import (
     BadRequestException,
@@ -39,9 +12,11 @@ from liquidctl_server.models import (
     LiquidctlException,
     StatusValue,
 )
+from liquidctl_server.service import driver_quirks
 from liquidctl_server.service.config import (
     DEVICE_OPERATION_TIMEOUT,
     DEVICE_STATUS_TIMEOUT,
+    DUTY_CACHE_TTL,
     MAX_INIT_RETRIES,
     load_device_filter,
 )
@@ -57,7 +32,7 @@ class LiquidctlService:
         self.devices: Dict[int, BaseDriver] = {}
         self.device_status_cache: Dict[int, List[StatusValue]] = {}
         self.speed_channels: Dict[int, List[str]] = {}
-        self.previous_duty: Dict[str, Union[str, int, None]] = {}
+        self.previous_duty: Dict[str, Tuple[Union[str, int, None], float]] = {}
         self._executor: DeviceExecutor = DeviceExecutor()
 
     def __enter__(self) -> "LiquidctlService":
@@ -136,7 +111,7 @@ class LiquidctlService:
             init_job = self._executor.submit(device_id, lc_device.initialize)
             init_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
 
-            self.speed_channels[device_id] = self._get_speed_channels(lc_device)
+            self.speed_channels[device_id] = driver_quirks.speed_channels(lc_device)
 
         except RuntimeError as err:
             if "already open" in str(err):
@@ -236,7 +211,11 @@ class LiquidctlService:
     def set_fixed_speed(
         self, device_id: int, speed_kwargs: Dict[str, Union[str, int]]
     ) -> None:
-        """Set fixed speed for a device channel."""
+        """Set fixed speed for a device channel.
+
+        Device errors propagate to the caller so the client sees a failed
+        write instead of a bogus success response.
+        """
         if device_id not in self.devices:
             raise BadRequestException(f"Device with id:{device_id} not found")
 
@@ -244,21 +223,29 @@ class LiquidctlService:
         duty = speed_kwargs.get("duty")
         cache_key = f"{device_id}_{channel}"
 
-        if self.previous_duty.get(cache_key) == duty:
+        if self._is_duty_fresh(cache_key, duty):
             return
 
+        lc_device = self.devices[device_id]
+        speed_job = self._executor.submit(
+            device_id, lc_device.set_fixed_speed, **speed_kwargs
+        )
         try:
-            lc_device = self.devices[device_id]
-            speed_job = self._executor.submit(
-                device_id, lc_device.set_fixed_speed, **speed_kwargs
-            )
             speed_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
-            self.previous_duty[cache_key] = duty
+        except FuturesTimeoutError as err:
+            raise LiquidctlException(
+                f"Timeout setting speed for device #{device_id}"
+            ) from err
+        self.previous_duty[cache_key] = (duty, time.monotonic())
 
-        except FuturesTimeoutError:
-            logger.error(f"Timeout setting speed for device #{device_id}")
-        except Exception as e:
-            logger.error(f"Error setting fixed speed for device #{device_id}: {e}")
+    def _is_duty_fresh(self, cache_key: str, duty: Union[str, int, None]) -> bool:
+        entry = self.previous_duty.get(cache_key)
+        if entry is None:
+            return False
+        cached_duty, applied_at = entry
+        # TTL so a periodic re-assert still reaches a device that was
+        # power-cycled or overridden by other software.
+        return cached_duty == duty and time.monotonic() - applied_at < DUTY_CACHE_TTL
 
     def log_device_details(self) -> None:
         """Dump everything useful about each device for RGB/debug troubleshooting."""
@@ -330,33 +317,25 @@ class LiquidctlService:
             "set_color: resolved device #%d -> %s", device_id, lc_device.description
         )
 
+        color_job = self._executor.submit(
+            device_id,
+            lc_device.set_color,
+            channel=channel,
+            mode=mode,
+            colors=colors,
+        )
         try:
-            color_job = self._executor.submit(
-                device_id,
-                lc_device.set_color,
-                channel=channel,
-                mode=mode,
-                colors=colors,
-            )
             color_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
-            logger.info(
-                "set_color: applied channel=%r mode=%r on device #%d",
-                channel,
-                mode,
-                device_id,
-            )
-
-        except FuturesTimeoutError:
-            logger.error(f"Timeout setting color for device #{device_id}")
-        except Exception as e:
-            logger.exception(
-                "set_color FAILED on device #%d (channel=%r mode=%r ncolors=%d): %s",
-                device_id,
-                channel,
-                mode,
-                len(colors),
-                e,
-            )
+        except FuturesTimeoutError as err:
+            raise LiquidctlException(
+                f"Timeout setting color for device #{device_id}"
+            ) from err
+        logger.info(
+            "set_color: applied channel=%r mode=%r on device #%d",
+            channel,
+            mode,
+            device_id,
+        )
 
     def disconnect_all(self) -> None:
         """Disconnect all devices."""
@@ -377,31 +356,6 @@ class LiquidctlService:
         self.previous_duty.clear()
 
     @staticmethod
-    def _get_speed_channels(lc_device: BaseDriver) -> List[str]:
-        """Controllable speed channels reported by the driver (no uniform API exists)."""
-
-        def is_a(driver_cls) -> bool:
-            return driver_cls is not None and isinstance(lc_device, driver_cls)
-
-        if (
-            isinstance(lc_device, (SmartDevice2, SmartDevice))
-            or is_a(ControlHub)
-            or is_a(H1V2)
-        ):
-            return list(getattr(lc_device, "_speed_channels", {}).keys())
-        if is_a(Aquacomputer):
-            return list(
-                getattr(lc_device, "_device_info", {}).get("fan_ctrl", {}).keys()
-            )
-        if is_a(CommanderCore):
-            return ["pump"] if getattr(lc_device, "_has_pump", False) else []
-        if isinstance(lc_device, (CommanderPro, HydroPlatinum)):
-            return list(getattr(lc_device, "_fan_names", []))
-        if is_a(HydroPro):
-            return [f"fan{i + 1}" for i in range(getattr(lc_device, "_fan_count", 0))]
-        return []
-
-    @staticmethod
     def _stringify_status(
         statuses: Union[List[Tuple[str, Union[str, int, float], str]], None],
     ) -> List[StatusValue]:
@@ -413,7 +367,7 @@ class LiquidctlService:
         for status in statuses:
             try:
                 value = float(status[1])
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 value = None
 
             result.append(
