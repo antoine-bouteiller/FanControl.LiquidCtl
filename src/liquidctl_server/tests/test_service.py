@@ -304,6 +304,240 @@ class TestInitializeAll:
             svc.initialize_all()
             assert call_count == 2
 
+    def test_all_retries_fail_logs_error(self, caplog):
+        svc = _make_service()
+        with (
+            patch.object(svc, "_find_devices", side_effect=RuntimeError("nope")),
+            caplog.at_level(logging.ERROR),
+        ):
+            svc.initialize_all()
+        assert "Failed to initialize devices" in caplog.text
+
+
+class TestFindDevicesDiscovery:
+    def test_value_error_returns_early(self):
+        svc = _make_service()
+        with patch(
+            "liquidctl_server.service.liquidctl_service.liquidctl"
+            ".find_liquidctl_devices",
+            side_effect=ValueError("no backend"),
+        ):
+            svc._find_devices()
+        assert svc.devices == {}
+
+    def test_no_devices_returns_early(self):
+        svc = _make_service()
+        with patch(
+            "liquidctl_server.service.liquidctl_service.liquidctl"
+            ".find_liquidctl_devices",
+            return_value=[],
+        ):
+            svc._find_devices()
+        assert svc.devices == {}
+
+    def test_connect_failure_is_logged_and_skipped(self, caplog):
+        svc = _make_service()
+        good = _device("NZXT Kraken X63")
+        bad = _device("Broken Device")
+
+        def connect(device_id, lc_device):
+            if lc_device is bad:
+                raise RuntimeError("USB error")
+
+        with (
+            patch(
+                "liquidctl_server.service.liquidctl_service.liquidctl"
+                ".find_liquidctl_devices",
+                return_value=[good, bad],
+            ),
+            patch(
+                "liquidctl_server.service.liquidctl_service.load_device_filter",
+                return_value=None,
+            ),
+            patch.object(svc, "_connect_device", side_effect=connect),
+            caplog.at_level(logging.ERROR),
+        ):
+            svc._find_devices()
+
+        assert list(svc.devices.values()) == [good]
+        assert "Failed to connect device" in caplog.text
+
+
+class TestConnectDevice:
+    def test_success_records_speed_channels(self):
+        svc = _make_service()
+        svc._executor.submit.return_value = _make_future()
+        dev = _device("NZXT Kraken X63")
+
+        with patch(
+            "liquidctl_server.service.liquidctl_service.driver_quirks.speed_channels",
+            return_value=["fan1", "pump"],
+        ):
+            svc._connect_device(1, dev)
+
+        assert svc.speed_channels[1] == ["fan1", "pump"]
+
+    def test_already_open_is_warning_not_error(self, caplog):
+        svc = _make_service()
+        future = MagicMock()
+        future.result.side_effect = RuntimeError("device already open")
+        svc._executor.submit.return_value = future
+
+        with caplog.at_level(logging.WARNING):
+            svc._connect_device(1, _device("Kraken"))
+
+        assert "already connected" in caplog.text
+
+    def test_other_runtime_error_wrapped(self):
+        svc = _make_service()
+        future = MagicMock()
+        future.result.side_effect = RuntimeError("bus fault")
+        svc._executor.submit.return_value = future
+
+        with pytest.raises(LiquidctlException, match="Device connection error"):
+            svc._connect_device(1, _device("Kraken"))
+
+
+class TestGetStatuses:
+    def test_no_devices_returns_empty(self):
+        svc = _make_service()
+        svc.devices = {}
+        assert svc.get_statuses() == []
+
+    def test_collects_present_statuses(self):
+        svc = _make_service()
+        svc.devices = {1: _device("A"), 2: _device("B")}
+        sentinel = object()
+        with patch.object(
+            svc,
+            "_get_current_or_cached_device_status",
+            side_effect=[sentinel, None],
+        ):
+            result = svc.get_statuses()
+        assert result == [sentinel]
+
+
+class TestGetCurrentOrCachedStatus:
+    def test_success_caches_and_builds(self):
+        svc = _make_service()
+        svc.speed_channels = {1: []}
+        dev = _device("Kraken")
+        future = _make_future([("Fan", 1200, "rpm")])
+        svc._executor.submit.return_value = future
+
+        result = svc._get_current_or_cached_device_status(1, dev)
+
+        assert result.description == "Kraken"
+        assert svc.device_status_cache[1][0].value == pytest.approx(1200.0)
+        future.cancel.assert_called_once()
+
+    def test_timeout_delegates_to_handler(self):
+        svc = _make_service()
+        future = MagicMock()
+        future.result.side_effect = FuturesTimeoutError()
+        svc._executor.submit.return_value = future
+
+        sentinel = object()
+        with patch.object(
+            svc, "_handle_status_timeout", return_value=sentinel
+        ) as handler:
+            result = svc._get_current_or_cached_device_status(1, _device("Kraken"))
+
+        assert result is sentinel
+        handler.assert_called_once()
+
+    def test_generic_error_falls_back_to_cache(self):
+        svc = _make_service()
+        svc.speed_channels = {1: []}
+        svc.device_status_cache = {1: [StatusValue(key="T", value=28.0, unit="°C")]}
+        future = MagicMock()
+        future.result.side_effect = RuntimeError("read fail")
+        svc._executor.submit.return_value = future
+
+        result = svc._get_current_or_cached_device_status(1, _device("Kraken"))
+
+        assert result.status[0].value == pytest.approx(28.0)
+
+
+class TestHandleStatusTimeout:
+    def test_returns_cache_when_queue_busy(self):
+        svc = _make_service()
+        svc.speed_channels = {1: []}
+        svc.device_status_cache = {1: [StatusValue(key="T", value=28.0, unit="°C")]}
+        svc._executor.device_queue_empty.return_value = False
+
+        result = svc._handle_status_timeout(1, _device("Kraken"))
+
+        assert result.status[0].value == pytest.approx(28.0)
+        svc._executor.submit.assert_not_called()
+
+    def test_queue_empty_with_cache_submits_async_and_returns_cache(self):
+        svc = _make_service()
+        svc.speed_channels = {1: []}
+        svc.device_status_cache = {1: [StatusValue(key="T", value=28.0, unit="°C")]}
+        svc._executor.device_queue_empty.return_value = True
+        svc._executor.submit.return_value = _make_future()
+
+        result = svc._handle_status_timeout(1, _device("Kraken"))
+
+        assert result.status[0].value == pytest.approx(28.0)
+        svc._executor.submit.assert_called_once()
+
+    def test_queue_empty_no_cache_awaits_async(self):
+        svc = _make_service()
+        svc.device_status_cache = {}
+        svc._executor.device_queue_empty.return_value = True
+        sentinel = object()
+        async_future = _make_future(sentinel)
+        svc._executor.submit.return_value = async_future
+
+        result = svc._handle_status_timeout(1, _device("Kraken"))
+
+        assert result is sentinel
+        async_future.cancel.assert_called_once()
+
+    def test_queue_empty_no_cache_async_times_out(self):
+        svc = _make_service()
+        svc.device_status_cache = {}
+        svc._executor.device_queue_empty.return_value = True
+        async_future = MagicMock()
+        async_future.result.side_effect = FuturesTimeoutError()
+        svc._executor.submit.return_value = async_future
+
+        result = svc._handle_status_timeout(1, _device("Kraken"))
+
+        assert result is None
+
+
+class TestLongAsyncStatusRequest:
+    def test_updates_cache_and_builds(self):
+        svc = _make_service()
+        svc.speed_channels = {1: []}
+        dev = _device("Kraken")
+        dev.get_status.return_value = [("Fan", 900, "rpm")]
+        svc.devices = {1: dev}
+
+        result = svc._long_async_status_request(1)
+
+        assert result.status[0].value == pytest.approx(900.0)
+        assert svc.device_status_cache[1][0].value == pytest.approx(900.0)
+
+
+class TestLogDeviceDetails:
+    def test_logs_inventory_without_error(self, caplog):
+        svc = _make_service()
+        dev = _device("Kraken")
+        dev.vendor_id = 0x1E71
+        dev.product_id = 0x2007
+        dev._fan_count = 3
+        svc.devices = {1: dev}
+
+        with caplog.at_level(logging.INFO):
+            svc.log_device_details()
+
+        assert "Device inventory" in caplog.text
+        assert "_fan_count" in caplog.text
+
 
 def _device(description):
     dev = MagicMock()
