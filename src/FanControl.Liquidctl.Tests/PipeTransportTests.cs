@@ -3,6 +3,7 @@ using Xunit;
 
 namespace FanControl.LiquidCtl.Tests;
 
+[Collection("NamedPipe")]
 public sealed class PipeTransportTests
 {
     [WindowsOnlyFact]

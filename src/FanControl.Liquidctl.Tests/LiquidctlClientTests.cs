@@ -13,6 +13,7 @@ internal sealed class FakeLogger : IPluginLogger
     public void Log(string message) => Messages.Add(message);
 }
 
+[Collection("NamedPipe")]
 public sealed class LiquidctlClientTests
 {
     [WindowsOnlyFact]
