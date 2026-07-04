@@ -4,137 +4,97 @@ import time
 import pytest
 
 pytestmark = pytest.mark.skipif(
-    sys.platform != "win32", reason="pipe_server uses Win32 named pipe APIs"
+    sys.platform != "win32", reason="named pipes use Win32 APIs"
 )
 
 if sys.platform == "win32":
-    import ctypes
-    from ctypes import wintypes
-
+    from liquidctl_server import win32_pipe
     from liquidctl_server.models import PipeError
-    from liquidctl_server.pipe_server import Base, Server
-
-    _GENERIC_READ = 0x80000000
-    _GENERIC_WRITE = 0x40000000
-    _OPEN_EXISTING = 3
-    _PIPE_READMODE_MESSAGE = 0x00000002
-    _INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
-
-    # restype must be HANDLE (pointer-sized): the ctypes default of c_int would
-    # truncate the returned 64-bit pipe handle on Win64.
-    ctypes.windll.kernel32.CreateFileW.argtypes = [
-        wintypes.LPCWSTR,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.LPVOID,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.HANDLE,
-    ]
-    ctypes.windll.kernel32.CreateFileW.restype = wintypes.HANDLE
-    ctypes.windll.kernel32.SetNamedPipeHandleState.restype = wintypes.BOOL
+    from liquidctl_server.pipe_server import PipeServer
 
 
 class _PipeClient:
-    def __init__(self, pipe_path: str) -> None:
-        self._k32 = ctypes.windll.kernel32
-        self.handle = self._connect(pipe_path)
-
-    def _connect(self, pipe_path: str) -> int:
+    def __init__(self, pipe_name: str) -> None:
         deadline = time.monotonic() + 5.0
-        while time.monotonic() < deadline:
-            handle = self._k32.CreateFileW(
-                pipe_path,
-                _GENERIC_READ | _GENERIC_WRITE,
-                0,
-                None,
-                _OPEN_EXISTING,
-                0,
-                None,
-            )
-            if handle != _INVALID_HANDLE_VALUE:
-                mode = wintypes.DWORD(_PIPE_READMODE_MESSAGE)
-                self._k32.SetNamedPipeHandleState(
-                    handle, ctypes.byref(mode), None, None
-                )
-                return handle
-            time.sleep(0.05)
-        raise AssertionError(f"could not connect to {pipe_path}")
+        while True:
+            try:
+                self.handle = win32_pipe.open_client_pipe(pipe_name)
+                return
+            except PipeError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.05)
 
-    def write(self, payload: bytes) -> None:
-        written = wintypes.DWORD(0)
-        self._k32.WriteFile(
-            self.handle, payload, len(payload), ctypes.byref(written), None
-        )
-
-    def read(self, size: int = 65536) -> bytes:
-        buffer = ctypes.create_string_buffer(size)
-        read_bytes = wintypes.DWORD(0)
-        self._k32.ReadFile(self.handle, buffer, size, ctypes.byref(read_bytes), None)
-        return buffer.raw[: read_bytes.value]
+    def request(self, payload: bytes) -> bytes:
+        win32_pipe.write_message(self.handle, payload)
+        return win32_pipe.read_message(self.handle)
 
     def close(self) -> None:
-        if self.handle:
-            ctypes.windll.kernel32.CloseHandle(self.handle)
+        if self.handle is not None:
+            win32_pipe.close(self.handle)
             self.handle = None
 
 
-class TestBaseWithoutConnection:
-    def test_fresh_base_is_not_alive(self):
-        assert Base().alive is False
-
-    def test_canread_false_when_not_alive(self):
-        assert Base().canread() is False
-
-    def test_read_none_when_not_alive(self):
-        assert Base().read() is None
-
-    def test_write_raises_when_not_alive(self):
-        with pytest.raises(PipeError):
-            Base().write(b"data")
+def _echo_upper(request: bytes) -> bytes:
+    return request.upper()
 
 
-def _wait_until(predicate, timeout: float = 3.0) -> bool:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.05)
-    return False
-
-
-class TestServerLoopback:
-    def test_client_to_server_roundtrip(self):
-        server = Server(name="LiquidCtlPipeTest_RX")
+class TestPipeServer:
+    def test_request_response_roundtrip(self):
+        server = PipeServer("LiquidCtlPipeTest_RT", _echo_upper)
+        server.start()
         client = None
         try:
-            client = _PipeClient(server.pipe_path)
-            assert _wait_until(lambda: server.alive)
-
-            client.write(b'{"command":"get.statuses"}')
-            assert _wait_until(server.canread)
-
-            assert server.read() == b'{"command":"get.statuses"}'
+            client = _PipeClient(server.name)
+            assert client.request(b'{"command":"x"}') == b'{"COMMAND":"X"}'
         finally:
-            server.close()
             if client is not None:
                 client.close()
+            server.stop()
 
-    def test_server_to_client_roundtrip(self):
-        server = Server(name="LiquidCtlPipeTest_TX")
+    def test_multiple_requests_on_one_connection(self):
+        server = PipeServer("LiquidCtlPipeTest_MULTI", _echo_upper)
+        server.start()
         client = None
         try:
-            client = _PipeClient(server.pipe_path)
-            assert _wait_until(lambda: server.alive)
-
-            assert server.write(b'{"status":"success"}') is True
-            assert client.read() == b'{"status":"success"}'
+            client = _PipeClient(server.name)
+            assert client.request(b"first") == b"FIRST"
+            assert client.request(b"second") == b"SECOND"
         finally:
-            server.close()
             if client is not None:
                 client.close()
+            server.stop()
 
-    def test_context_manager_closes_server(self):
-        with Server(name="LiquidCtlPipeTest_CM") as server:
-            assert server.server_thread.is_alive()
-        assert server.shutdown_event.is_set()
+    def test_new_client_can_connect_after_disconnect(self):
+        server = PipeServer("LiquidCtlPipeTest_RECONNECT", _echo_upper)
+        server.start()
+        second = None
+        try:
+            first = _PipeClient(server.name)
+            assert first.request(b"one") == b"ONE"
+            first.close()
+
+            second = _PipeClient(server.name)
+            assert second.request(b"two") == b"TWO"
+        finally:
+            if second is not None:
+                second.close()
+            server.stop()
+
+    def test_stop_unblocks_waiting_server_thread(self):
+        server = PipeServer("LiquidCtlPipeTest_STOP", _echo_upper)
+        server.start()
+
+        server.stop()
+
+        assert not server._thread.is_alive()
+
+    def test_stop_while_client_connected(self):
+        server = PipeServer("LiquidCtlPipeTest_STOPCONN", _echo_upper)
+        server.start()
+        client = _PipeClient(server.name)
+        try:
+            server.stop()
+            assert not server._thread.is_alive()
+        finally:
+            client.close()

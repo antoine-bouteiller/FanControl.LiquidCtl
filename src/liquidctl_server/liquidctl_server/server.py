@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import sys
-import threading
 import time
 from typing import Any, Callable, Dict
 
@@ -14,10 +13,9 @@ from liquidctl_server.models import (
     FixedSpeedRequest,
     LedRequest,
     MessageStatus,
-    PipeError,
     PipeRequest,
 )
-from liquidctl_server.pipe_server import Server
+from liquidctl_server.pipe_server import PipeServer
 from liquidctl_server.service import LiquidctlService
 
 logger = logging.getLogger(__name__)
@@ -94,23 +92,6 @@ def process_request(raw_msg: bytes, service: LiquidctlService) -> bytes:
     return msgspec.json.encode(response)
 
 
-def run_server_loop(service: LiquidctlService, pipe: Server) -> None:
-    while not pipe.shutdown_event.is_set():
-        raw_msg = pipe.read()
-
-        if raw_msg:
-            response_bytes = process_request(raw_msg, service)
-            try:
-                pipe.write(response_bytes)
-            except PipeError:
-                logger.debug(
-                    "Client disconnected during response write, discarding response"
-                )
-                continue
-        else:
-            time.sleep(0.05)
-
-
 def main():
     parser = argparse.ArgumentParser(description="Liquidctl Bridge Server")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
@@ -132,28 +113,34 @@ def main():
     rgb_pipe_name = f"LiquidCtlPipe{suffix}Rgb"
 
     try:
-        with (
-            LiquidctlService() as service,
-            Server(name=pipe_name) as pipe,
-            Server(name=rgb_pipe_name) as rgb_pipe,
-        ):
+        with LiquidctlService() as service:
             logger.info("Initializing Liquidctl devices...")
             service.initialize_all()
             service.log_device_details()
+
+            def handle(raw_msg: bytes) -> bytes:
+                return process_request(raw_msg, service)
+
+            servers = [
+                PipeServer(pipe_name, handle),
+                PipeServer(rgb_pipe_name, handle),
+            ]
+            for server in servers:
+                server.start()
             logger.info(f"Bridge Server listening on \\\\.\\pipe\\{pipe_name}")
             logger.info(f"RGB Bridge Server listening on \\\\.\\pipe\\{rgb_pipe_name}")
 
-            rgb_thread = threading.Thread(
-                target=run_server_loop, args=(service, rgb_pipe), daemon=True
-            )
-            rgb_thread.start()
-
-            run_server_loop(service, pipe)
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                logger.info("Stopping server...")
+            finally:
+                for server in servers:
+                    server.stop()
 
     except KeyboardInterrupt:
         logger.info("Stopping server...")
-    except PipeError as e:
-        logger.info(f"Pipe closed: {e}")
     except Exception as e:
         logger.critical(f"Fatal crash: {e}", exc_info=True)
         sys.exit(1)
