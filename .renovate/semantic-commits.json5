@@ -6,7 +6,6 @@
       labels: ['type/major'],
       semanticCommitType: 'build',
       semanticCommitScope: 'deps',
-      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}})!:',
       commitMessageExtra: '( {{currentVersion}} ➜ {{newVersion}} )',
     },
     {
@@ -37,11 +36,6 @@
       commitMessageTopic: 'action {{depName}}',
     },
     {
-      matchManagers: ['github-actions'],
-      matchUpdateTypes: ['major'],
-      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
-    },
-    {
       matchManagers: ['npm'],
       addLabels: ['renovate/npm'],
       semanticCommitType: 'chore',
@@ -58,27 +52,21 @@
       matchManagers: ['pip_requirements', 'pip-compile', 'pep621', 'uv'],
       matchDepTypes: ['devDependencies', 'dev', 'optional-dependencies'],
       addLabels: ['renovate/python'],
+      semanticCommitType: 'test',
+      semanticCommitScope: 'deps',
       commitMessageTopic: 'package {{depName}}',
     },
     {
       matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
-      semanticCommitScope: 'deps-dev',
-    },
-    {
-      matchUpdateTypes: ['major'],
-      matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
-      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
+      semanticCommitType: 'test',
+      semanticCommitScope: 'deps',
     },
     {
       // Everything in the test project is a dev dependency. NuGet has no
       // devDependencies depType, so match the test project file instead.
       matchFileNames: ['**/*.Tests.csproj'],
-      semanticCommitScope: 'deps-dev',
-    },
-    {
-      matchUpdateTypes: ['major'],
-      matchFileNames: ['**/*.Tests.csproj'],
-      commitMessagePrefix: '{{semanticCommitType}}({{semanticCommitScope}}):',
+      semanticCommitType: 'test',
+      semanticCommitScope: 'deps',
     },
   ],
 }
