@@ -20,23 +20,24 @@ class _DeviceJob:
             result = self.fn(**self.kwargs)
         except Exception as exc:
             self.future.set_exception(exc)
-            raise
         else:
             self.future.set_result(result)
 
 
 def _queue_worker(dev_queue: queue.SimpleQueue) -> None:
     """Worker that processes jobs from a device queue sequentially."""
-    try:
-        while True:
-            device_job: Optional[_DeviceJob] = dev_queue.get()
-            if device_job is None:
-                return  # Shutdown signal
+    while True:
+        device_job: Optional[_DeviceJob] = dev_queue.get()
+        if device_job is None:
+            return  # Shutdown signal
+        try:
             device_job.run()
-            del device_job
-    except Exception as exc:
-        sys.stderr.write(f"Exception in device worker: {exc}\n")
-        raise
+        except Exception as exc:
+            # run() routes job errors to the future; this only fires on a bug in
+            # run() itself. Never let it kill the worker, or the device queue
+            # would silently stall until every future times out.
+            sys.stderr.write(f"Exception in device worker: {exc}\n")
+        del device_job
 
 
 class DeviceExecutor:

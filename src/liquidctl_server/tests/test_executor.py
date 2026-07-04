@@ -14,11 +14,10 @@ class TestDeviceJobRun:
         job.run()
         assert future.result() == 10
 
-    def test_exception_sets_on_future_and_reraises(self):
+    def test_exception_sets_on_future_without_reraising(self):
         future = Future()
         job = _DeviceJob(future, lambda: (_ for _ in ()).throw(ValueError("boom")))
-        with pytest.raises(ValueError, match="boom"):
-            job.run()
+        job.run()
         with pytest.raises(ValueError, match="boom"):
             future.result()
 
@@ -83,6 +82,22 @@ class TestQueueWorker:
         q.put(None)
         thread.join(timeout=1.0)
         assert not thread.is_alive()
+
+    def test_worker_survives_failing_job(self):
+        q = queue.SimpleQueue()
+        failing, ok = Future(), Future()
+        q.put(_DeviceJob(failing, lambda: (_ for _ in ()).throw(ValueError("boom"))))
+        q.put(_DeviceJob(ok, lambda: 99))
+        q.put(None)
+
+        thread = threading.Thread(target=_queue_worker, args=(q,))
+        thread.start()
+        thread.join(timeout=2.0)
+
+        assert not thread.is_alive()
+        with pytest.raises(ValueError, match="boom"):
+            failing.result()
+        assert ok.result() == 99
 
     def test_jobs_processed_before_sentinel(self):
         q = queue.SimpleQueue()
