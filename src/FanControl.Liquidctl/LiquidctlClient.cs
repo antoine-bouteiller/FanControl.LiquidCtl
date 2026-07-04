@@ -1,8 +1,4 @@
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO.Pipes;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using FanControl.Plugins;
 
@@ -11,186 +7,114 @@ namespace FanControl.LiquidCtl
     public sealed class LiquidctlClient(IPluginLogger logger) : ILiquidctlClient
     {
         private readonly IPluginLogger _logger = logger;
-        private readonly string _exePath = ResolveExePath();
+        private readonly BridgeProcess _process = new(logger);
+        private readonly PipeTransport _transport = new(logger);
 
-        private static string ResolveExePath()
-        {
-            var baseDir = Path.GetDirectoryName(typeof(LiquidctlClient).Assembly.Location) ?? string.Empty;
-            return Path.Combine(baseDir, "liquidctl_server", "liquidctl_server.exe");
-        }
-        private const string PipeName = "LiquidCtlPipe";
-
-        private Process? _bridgeProcess;
-        private NamedPipeClientStream? _pipeClient;
-        private readonly object _lock = new();
+        private readonly ConcurrentDictionary<(int DeviceId, string Channel), FixedSpeedRequest> _pendingSpeeds = new();
+        private int _speedWorkerActive;
 
         private CachedStatuses? _cachedStatuses;
-        private bool _disposed;
+        private volatile bool _disposed;
 
         public void Init()
         {
             for (int attempt = 1; attempt <= BridgeConfig.MaxInitRetries; attempt++)
             {
-                if (TryInitialize())
+                if (_process.EnsureRunning())
                 {
-                    return;
+                    Thread.Sleep(BridgeConfig.BridgeStartupDelayMs);
+                    // An empty device list is a valid outcome; only a transport
+                    // failure (null) is worth retrying.
+                    if (RequestStatuses() != null) return;
                 }
 
-                _logger.Log($"[LiquidCtl] Failed, retrying in {BridgeConfig.RetryDelayMs}ms...");
-                Cleanup();
+                _logger.Log($"[LiquidCtl] Init attempt {attempt}/{BridgeConfig.MaxInitRetries} failed, retrying in {BridgeConfig.RetryDelayMs}ms...");
+                _transport.ResetBackoff();
                 Thread.Sleep(BridgeConfig.RetryDelayMs);
-            }
-        }
-
-        private bool TryInitialize()
-        {
-            if (!EnsureProcessStarted()) return false;
-
-            Thread.Sleep(BridgeConfig.BridgeStartupDelayMs);
-
-            return EnsurePipeConnected() && GetStatuses().Any();
-        }
-
-        private bool EnsureProcessStarted()
-        {
-            lock (_lock)
-            {
-                if (_bridgeProcess is { HasExited: false }) return true;
-
-                if (!File.Exists(_exePath))
-                {
-                    _logger.Log($"[LiquidCtl] Missing: {_exePath}");
-                    return false;
-                }
-
-                KillExistingBridgeProcesses();
-
-                _bridgeProcess = new Process
-                {
-                    StartInfo = new ProcessStartInfo(_exePath, "--log-level ERROR")
-                    {
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    }
-                };
-
-                _bridgeProcess.OutputDataReceived += (_, e) => { if (e.Data != null) _logger.Log($"[LiquidCtl Bridge] {e.Data}"); };
-                _bridgeProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) _logger.Log($"[LiquidCtl Bridge] {e.Data}"); };
-
-                _bridgeProcess.Start();
-                _bridgeProcess.BeginOutputReadLine();
-                _bridgeProcess.BeginErrorReadLine();
-                return true;
-            }
-        }
-
-        private bool EnsurePipeConnected()
-        {
-            if (_pipeClient is { IsConnected: true }) return true;
-
-            try
-            {
-                _pipeClient?.Dispose();
-                _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-                _pipeClient.Connect(BridgeConfig.PipeConnectTimeoutMs);
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    _pipeClient.ReadMode = PipeTransmissionMode.Message;
-
-                return true;
-            }
-            catch (Exception ex) when (ex is IOException or TimeoutException or OperationCanceledException)
-            {
-                _logger.Log($"[LiquidCtl] Pipe connection failed: {ex.Message}");
-                return false;
             }
         }
 
         public IReadOnlyList<DeviceStatus> GetStatuses()
         {
-            var result = SendRequest<List<DeviceStatus>>(new PipeRequest { Command = "get.statuses" });
-            if (result != null)
-            {
-                _cachedStatuses = new CachedStatuses(result);
-                return result;
-            }
-            return _cachedStatuses?.Statuses ?? new List<DeviceStatus>();
+            List<DeviceStatus>? statuses = RequestStatuses();
+            if (statuses != null) return statuses;
+
+            if (!_disposed) _process.EnsureRunning();
+
+            // Serve the cache only while fresh: FanControl must see sensors go
+            // stale instead of steering fans off a frozen temperature reading.
+            CachedStatuses? cached = _cachedStatuses;
+            return cached is { IsExpired: false } ? cached.Statuses : [];
         }
 
         public void SetFixedSpeed(FixedSpeedRequest request)
         {
-            Task.Run(() => SendRequest<object>(new PipeRequest { Command = "set.fixed_speed", Data = request }));
+            ArgumentNullException.ThrowIfNull(request);
+            if (_disposed) return;
+
+            // Coalesce per channel (only the latest duty matters) and drain from
+            // a single worker so writes cannot arrive out of order.
+            _pendingSpeeds[(request.DeviceId, request.SpeedKwargs.Channel)] = request;
+            if (Interlocked.CompareExchange(ref _speedWorkerActive, 1, 0) == 0)
+            {
+                Task.Run(DrainPendingSpeeds);
+            }
+        }
+
+        private void DrainPendingSpeeds()
+        {
+            do
+            {
+                while (!_pendingSpeeds.IsEmpty)
+                {
+                    foreach ((int DeviceId, string Channel) key in _pendingSpeeds.Keys)
+                    {
+                        if (_pendingSpeeds.TryRemove(key, out FixedSpeedRequest? request))
+                        {
+                            SendRequest<object>(new PipeRequest { Command = "set.fixed_speed", Data = request });
+                        }
+                    }
+                }
+                Interlocked.Exchange(ref _speedWorkerActive, 0);
+                // Re-claim the worker slot if a request slipped in after the empty
+                // check, otherwise it would sit unsent until the next Set call.
+            } while (!_pendingSpeeds.IsEmpty && Interlocked.CompareExchange(ref _speedWorkerActive, 1, 0) == 0);
+        }
+
+        private List<DeviceStatus>? RequestStatuses()
+        {
+            var statuses = SendRequest<List<DeviceStatus>>(new PipeRequest { Command = "get.statuses" });
+            if (statuses != null) _cachedStatuses = new CachedStatuses(statuses);
+            return statuses;
         }
 
         private T? SendRequest<T>(PipeRequest request) where T : class
         {
             if (_disposed) return null;
 
-            lock (_lock)
+            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(request);
+            byte[]? responseBytes = _transport.Request(payload);
+            if (responseBytes == null) return null;
+
+            try
             {
-                if (!EnsurePipeConnected()) return null;
-
-                try
-                {
-                    string json = JsonSerializer.Serialize(request);
-                    byte[] payload = Encoding.UTF8.GetBytes(json);
-
-                    _pipeClient!.Write(payload, 0, payload.Length);
-                    _pipeClient.Flush();
-
-                    byte[] buffer = new byte[65536];
-                    int bytesRead = _pipeClient.Read(buffer, 0, buffer.Length);
-
-                    if (bytesRead == 0) return null;
-
-                    var response = JsonSerializer.Deserialize<ServerResponse<T>>(Encoding.UTF8.GetString(buffer, 0, bytesRead));
-
-                    if (response?.IsSuccess == true) return response.Data;
-
-                    _logger.Log($"[LiquidCtl] Bridge error: {response?.Error}");
-                }
-                catch (Exception ex) when (ex is IOException or TimeoutException or JsonException)
-                {
-                    _logger.Log($"[LiquidCtl] Request failed: {ex.Message}");
-                    _pipeClient?.Dispose();
-                    _pipeClient = null;
-                }
-                return null;
+                var response = JsonSerializer.Deserialize<ServerResponse<T>>(responseBytes);
+                if (response?.IsSuccess == true) return response.Data;
+                _logger.Log($"[LiquidCtl] Bridge error: {response?.Error}");
             }
-        }
-
-        private static void KillExistingBridgeProcesses()
-        {
-            foreach (var p in Process.GetProcessesByName("liquidctl_server"))
+            catch (JsonException ex)
             {
-                try { p.Kill(); p.WaitForExit(1000); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ } finally { p.Dispose(); }
+                _logger.Log($"[LiquidCtl] Invalid response: {ex.Message}");
             }
-        }
-
-        private void Cleanup()
-        {
-            lock (_lock)
-            {
-                _pipeClient?.Dispose();
-                _pipeClient = null;
-
-                if (_bridgeProcess is { HasExited: false })
-                {
-                    try { _bridgeProcess.Kill(); _bridgeProcess.WaitForExit(BridgeConfig.ShutdownTimeoutMs); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ }
-                }
-                _bridgeProcess?.Dispose();
-                _bridgeProcess = null;
-            }
+            return null;
         }
 
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
-            Cleanup();
-            KillExistingBridgeProcesses();
+            _transport.Dispose();
+            _process.Dispose();
         }
     }
 }
