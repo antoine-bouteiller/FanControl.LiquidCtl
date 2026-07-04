@@ -11,7 +11,6 @@ from liquidctl_server.pipe_server import (
     KERNEL32,
     PIPE_READMODE_MESSAGE,
     Base,
-    Mode,
     PipeError,
 )
 
@@ -47,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 class TestClient(Base):
     def __init__(self, name: str) -> None:
-        super().__init__(Mode.MASTER)
+        super().__init__()
         self.name = name
 
         pipe_path = f"\\\\.\\pipe\\{name}"

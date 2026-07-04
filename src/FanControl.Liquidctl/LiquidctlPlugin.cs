@@ -2,7 +2,7 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    public class LiquidCtlPlugin : IPlugin2, IDisposable
+    public sealed class LiquidCtlPlugin : IPlugin2, IDisposable
     {
         public string Name => "liquidctl";
 
@@ -115,22 +115,11 @@ namespace FanControl.LiquidCtl
             }
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    liquidctl.Dispose();
-                }
-                _disposed = true;
-            }
-        }
-
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            if (_disposed) return;
+            _disposed = true;
+            liquidctl.Dispose();
         }
     }
 }

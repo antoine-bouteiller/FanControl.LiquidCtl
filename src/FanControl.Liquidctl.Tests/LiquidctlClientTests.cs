@@ -16,13 +16,6 @@ internal sealed class FakeLogger : IPluginLogger
 public sealed class LiquidctlClientTests
 {
     [WindowsOnlyFact]
-    public void State_Initially_Disconnected()
-    {
-        using var client = new LiquidctlClient(new FakeLogger());
-        Assert.Equal(ConnectionState.Disconnected, client.State);
-    }
-
-    [WindowsOnlyFact]
     public void GetStatuses_WhenDisconnected_ReturnsEmpty()
     {
         using var client = new LiquidctlClient(new FakeLogger());
@@ -30,13 +23,14 @@ public sealed class LiquidctlClientTests
     }
 
     [WindowsOnlyFact]
-    public void Init_WithMissingBridgeExe_EndsInFaultedState()
+    public void Init_WithMissingBridgeExe_LogsMissingExe()
     {
-        using var client = new LiquidctlClient(new FakeLogger());
+        var logger = new FakeLogger();
+        using var client = new LiquidctlClient(logger);
 
         client.Init();
 
-        Assert.Equal(ConnectionState.Faulted, client.State);
+        Assert.Contains(logger.Messages, m => m.Contains("Missing", StringComparison.Ordinal));
     }
 
     [WindowsOnlyFact]
