@@ -10,6 +10,7 @@ namespace FanControl.LiquidCtl
 
         public const int MaxInitRetries = 3;
         public const int RetryDelayMs = 1000;
+        public const int ReconnectBackoffMs = 5000;
 
         public const int BridgeStartupDelayMs = 5000;
 
