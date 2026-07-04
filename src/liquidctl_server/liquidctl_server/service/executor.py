@@ -55,10 +55,15 @@ class DeviceExecutor:
         self._thread_pool: Optional[ThreadPoolExecutor] = None
 
     def set_number_of_devices(self, number_of_devices: int) -> None:
-        """Initialize queues and workers for the given number of devices."""
+        """Initialize queues and workers for the given number of devices.
+
+        Safe to call again (e.g. on init retry): previous workers are shut
+        down first instead of leaking alongside the new pool.
+        """
         if number_of_devices < 1:
             return
 
+        self.shutdown()
         self._thread_pool = ThreadPoolExecutor(max_workers=number_of_devices)
         for dev_id in range(1, number_of_devices + 1):
             dev_queue: queue.SimpleQueue = queue.SimpleQueue()

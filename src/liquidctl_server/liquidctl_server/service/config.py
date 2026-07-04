@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 DEVICE_OPERATION_TIMEOUT: float = 5.0
 DEVICE_STATUS_TIMEOUT: float = 0.5
 MAX_INIT_RETRIES: int = 3
+DUTY_CACHE_TTL: float = 30.0
 
 # Optional device allowlist. Drop a file with this name in the plugin folder
 # containing a single regex line; only devices whose description matches
