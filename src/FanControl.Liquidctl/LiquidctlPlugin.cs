@@ -31,86 +31,40 @@ namespace FanControl.LiquidCtl
         {
             ArgumentNullException.ThrowIfNull(_container);
 
-            IReadOnlyCollection<DeviceStatus> detected_devices = liquidctl.GetStatuses();
+            SensorSet mapped = SensorMapper.Map(liquidctl.GetStatuses(), liquidctl);
 
-            foreach (DeviceStatus device in detected_devices)
+            foreach (DeviceSensor sensor in mapped.Fans)
             {
-                foreach (StatusValue channel in device.Status)
-                {
-                    ProcessChannel(device, channel, _container);
-                }
-
-                AddAuthoritativeControls(device, _container);
-            }
-        }
-
-        private void AddAuthoritativeControls(DeviceStatus device, IPluginSensorsContainer container)
-        {
-            foreach (string channelName in device.SpeedChannels)
-            {
-                if (device.Status.Any(s => s.Unit == "%" && Utils.ExtractChannelName(s.Key) == channelName))
-                {
-                    continue;
-                }
-
-                StatusValue? speed = device.Status.FirstOrDefault(
-                    s => s.Unit == "rpm" && Utils.ExtractChannelName(s.Key) == channelName);
-                string dutyKey = speed != null ? Utils.GetDutyKeyFromSpeedKey(speed.Key) : channelName;
-
-                StatusValue dutyChannel = new() { Key = dutyKey, Value = null, Unit = "%" };
-                string pairedId = Utils.CreateSensorId(device.Description, Utils.GetSpeedKeyFromDutyKey(dutyKey));
-                ControlSensor sensor = new(device, dutyChannel, liquidctl, pairedId, explicitChannelName: channelName);
                 sensors[sensor.Id] = sensor;
-                container.ControlSensors.Add(sensor);
+                _container.FanSensors.Add(sensor);
             }
-        }
-
-        private void ProcessChannel(DeviceStatus device, StatusValue channel, IPluginSensorsContainer container)
-        {
-            if (channel.Value == null) { return; }
-
-            switch (channel.Unit)
+            foreach (DeviceSensor sensor in mapped.Temps)
             {
-                case "%":
-                    AddControlSensor(device, channel, container);
-                    break;
-                case "rpm":
-                    AddReadSensor(device, channel, container.FanSensors);
-                    break;
-                case "°C":
-                    AddReadSensor(device, channel, container.TempSensors);
-                    break;
+                sensors[sensor.Id] = sensor;
+                _container.TempSensors.Add(sensor);
+            }
+            foreach (ControlSensor sensor in mapped.Controls)
+            {
+                sensors[sensor.Id] = sensor;
+                _container.ControlSensors.Add(sensor);
             }
         }
-
-        private void AddControlSensor(DeviceStatus device, StatusValue channel, IPluginSensorsContainer container)
-        {
-            string speedChannelKey = Utils.GetSpeedKeyFromDutyKey(channel.Key);
-            string speedSensorId = Utils.CreateSensorId(device.Description, speedChannelKey);
-            ControlSensor sensor = new(device, channel, liquidctl, speedSensorId);
-            sensors[sensor.Id] = sensor;
-            container.ControlSensors.Add(sensor);
-        }
-
-        private void AddReadSensor(DeviceStatus device, StatusValue channel, List<IPluginSensor> sensorList)
-        {
-            DeviceSensor sensor = new(device, channel);
-            sensors[sensor.Id] = sensor;
-            sensorList.Add(sensor);
-        }
-
 
         public void Update()
         {
-            IReadOnlyCollection<DeviceStatus> detected_devices = liquidctl.GetStatuses();
-            foreach (DeviceStatus device in detected_devices)
+            IReadOnlyList<DeviceStatus> devices = liquidctl.GetStatuses();
+            ISet<string> duplicates = SensorMapper.DuplicateDescriptions(devices);
+
+            foreach (DeviceStatus device in devices)
             {
+                string description = SensorMapper.EffectiveDescription(device, duplicates);
                 foreach (StatusValue channel in device.Status)
                 {
                     if (channel.Value == null) { continue; }
-                    string sensorId = Utils.CreateSensorId(device.Description, channel.Key);
-                    if (!sensors.ContainsKey(sensorId)) { continue; }
-                    sensors[sensorId].Update(channel);
+                    if (sensors.TryGetValue(Utils.CreateSensorId(description, channel.Key), out DeviceSensor? sensor))
+                    {
+                        sensor.Update(channel);
+                    }
                 }
             }
         }

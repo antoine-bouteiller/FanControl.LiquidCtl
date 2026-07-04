@@ -24,28 +24,28 @@ public sealed class DeviceSensorTests
     [WindowsOnlyFact]
     public void Constructor_SetsIdFromDescriptionAndKey()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(key: "Liquid temperature"));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(key: "Liquid temperature"));
         Assert.Equal("NZXTKrakenX63/Liquidtemperature", sensor.Id);
     }
 
     [WindowsOnlyFact]
     public void Constructor_SetsValueFromChannel()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(value: 1200.0));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 1200.0));
         Assert.Equal(1200f, sensor.Value);
     }
 
     [WindowsOnlyFact]
     public void Constructor_NullChannelValue_SensorValueIsNull()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(value: null));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: null));
         Assert.Null(sensor.Value);
     }
 
     [WindowsOnlyFact]
     public void Update_ChangesValueToNewStatus()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(value: 1000.0));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 1000.0));
         sensor.Update(MakeStatus(value: 1500.0));
         Assert.Equal(1500f, sensor.Value);
     }
@@ -53,7 +53,7 @@ public sealed class DeviceSensorTests
     [WindowsOnlyFact]
     public void Update_WithNullValue_SetsValueToNull()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(value: 800.0));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 800.0));
         sensor.Update(MakeStatus(value: null));
         Assert.Null(sensor.Value);
     }
@@ -61,7 +61,7 @@ public sealed class DeviceSensorTests
     [WindowsOnlyFact]
     public void Update_NoArg_ValueUnchanged()
     {
-        var sensor = new DeviceSensor(MakeDevice(), MakeStatus(value: 900.0));
+        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 900.0));
         sensor.Update();
         Assert.Equal(900f, sensor.Value);
     }
@@ -79,7 +79,7 @@ public sealed class ControlSensorTests
     public void Set_SendsCorrectDeviceIdAndDuty()
     {
         using var client = new FakeLiquidctlClient();
-        var sensor = new ControlSensor(MakeDevice(), MakeStatus(), client, pairedFanSensorId: null, explicitChannelName: "fan1");
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(), client, pairedFanSensorId: null, explicitChannelName: "fan1");
 
         sensor.Set(75.0f);
 
@@ -93,7 +93,7 @@ public sealed class ControlSensorTests
     public void Set_RoundsFloatDuty()
     {
         using var client = new FakeLiquidctlClient();
-        var sensor = new ControlSensor(MakeDevice(), MakeStatus(), client, null, "fan1");
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(), client, null, "fan1");
 
         sensor.Set(49.7f);
 
@@ -104,7 +104,7 @@ public sealed class ControlSensorTests
     public void Reset_CallsSetWithInitialValue()
     {
         using var client = new FakeLiquidctlClient();
-        var sensor = new ControlSensor(MakeDevice(), MakeStatus(value: 60.0), client, null, "pump");
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 60.0), client, null, "pump");
 
         sensor.Reset();
 
@@ -116,7 +116,7 @@ public sealed class ControlSensorTests
     public void Reset_NullInitialValue_DoesNothing()
     {
         using var client = new FakeLiquidctlClient();
-        var sensor = new ControlSensor(MakeDevice(), MakeStatus(value: null), client, null, "pump");
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: null), client, null, "pump");
 
         sensor.Reset();
 
@@ -127,7 +127,7 @@ public sealed class ControlSensorTests
     public void PairedFanSensorId_IsSetCorrectly()
     {
         using var client = new FakeLiquidctlClient();
-        var sensor = new ControlSensor(MakeDevice(), MakeStatus(), client, "NZXTKrakenX63/Fan1speed");
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(), client, "NZXTKrakenX63/Fan1speed");
 
         Assert.Equal("NZXTKrakenX63/Fan1speed", sensor.PairedFanSensorId);
     }

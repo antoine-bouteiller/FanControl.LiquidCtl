@@ -4,8 +4,8 @@ namespace FanControl.LiquidCtl
 {
     public class DeviceSensor : IPluginSensor
     {
-        public string Id => Utils.CreateSensorId(Device.Description, Channel.Key);
-        public virtual string Name => Utils.CreateSensorName(Device.Description, Channel.Key);
+        public string Id => Utils.CreateSensorId(Description, Channel.Key);
+        public virtual string Name => Utils.CreateSensorName(Description, Channel.Key);
         public float? Value => (float?)Channel.Value;
 
         public void Update() { }
@@ -16,11 +16,13 @@ namespace FanControl.LiquidCtl
         }
 
         internal DeviceStatus Device { get; }
+        internal string Description { get; }
         internal StatusValue Channel { get; set; }
 
-        internal DeviceSensor(DeviceStatus device, StatusValue channel)
+        internal DeviceSensor(DeviceStatus device, string description, StatusValue channel)
         {
             Device = device;
+            Description = description;
             Channel = channel;
         }
     }
@@ -33,8 +35,8 @@ namespace FanControl.LiquidCtl
 
         public string? PairedFanSensorId { get; }
 
-        internal ControlSensor(DeviceStatus device, StatusValue channel, ILiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
-            base(device, channel)
+        internal ControlSensor(DeviceStatus device, string description, StatusValue channel, ILiquidctlClient liquidctl, string? pairedFanSensorId, string? explicitChannelName = null) :
+            base(device, description, channel)
         {
             Initial = Value;
             this.liquidctl = liquidctl;

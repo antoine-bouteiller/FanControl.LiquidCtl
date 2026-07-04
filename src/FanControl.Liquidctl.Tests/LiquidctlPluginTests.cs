@@ -174,6 +174,28 @@ public sealed class LiquidctlPluginTests
     }
 
     [WindowsOnlyFact]
+    public void Update_TwoIdenticalDevices_UpdatesEachSensorIndependently()
+    {
+        static DeviceStatus Dev(int id, double value) => new()
+        {
+            Id = id,
+            Description = "NZXT Smart Device",
+            Status = [new StatusValue { Key = "Liquid temperature", Value = value, Unit = "°C" }]
+        };
+        using var client = new FakeLiquidctlClient { StatusesToReturn = [Dev(1, 20.0), Dev(2, 25.0)] };
+        using var plugin = new LiquidCtlPlugin(client);
+        var container = new FakeContainer();
+        plugin.Load(container);
+
+        client.StatusesToReturn = [Dev(1, 30.0), Dev(2, 35.0)];
+        plugin.Update();
+
+        Assert.Equal(2, container.TempSensors.Count);
+        Assert.Equal(30.0f, container.TempSensors[0].Value);
+        Assert.Equal(35.0f, container.TempSensors[1].Value);
+    }
+
+    [WindowsOnlyFact]
     public void Update_AfterLoad_UpdatesSensorValue()
     {
         using var client = new FakeLiquidctlClient
