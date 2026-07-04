@@ -1,11 +1,16 @@
 import logging
 import re
+import time
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from liquidctl_server.models import BadRequestException, StatusValue
+from liquidctl_server.models import (
+    BadRequestException,
+    LiquidctlException,
+    StatusValue,
+)
 from liquidctl_server.service.liquidctl_service import LiquidctlService
 
 
@@ -100,19 +105,19 @@ class TestSetFixedSpeedDeduplication:
         with pytest.raises(BadRequestException, match="not found"):
             svc.set_fixed_speed(99, {"channel": "fan1", "duty": 50})
 
-    def test_same_duty_skips_executor(self):
+    def test_same_fresh_duty_skips_executor(self):
         svc = _make_service()
         svc.devices = {1: MagicMock()}
-        svc.previous_duty = {"1_fan1": 50}
+        svc.previous_duty = {"1_fan1": (50, time.monotonic())}
 
         svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
 
         svc._executor.submit.assert_not_called()
 
-    def test_changed_duty_submits_and_updates_cache(self):
+    def test_same_duty_past_ttl_submits_again(self):
         svc = _make_service()
         svc.devices = {1: MagicMock()}
-        svc.previous_duty = {"1_fan1": 30}
+        svc.previous_duty = {"1_fan1": (50, time.monotonic() - 3600)}
         future_mock = MagicMock()
         future_mock.result.return_value = None
         svc._executor.submit.return_value = future_mock
@@ -120,7 +125,19 @@ class TestSetFixedSpeedDeduplication:
         svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
 
         svc._executor.submit.assert_called_once()
-        assert svc.previous_duty["1_fan1"] == 50
+
+    def test_changed_duty_submits_and_updates_cache(self):
+        svc = _make_service()
+        svc.devices = {1: MagicMock()}
+        svc.previous_duty = {"1_fan1": (30, time.monotonic())}
+        future_mock = MagicMock()
+        future_mock.result.return_value = None
+        svc._executor.submit.return_value = future_mock
+
+        svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
+
+        svc._executor.submit.assert_called_once()
+        assert svc.previous_duty["1_fan1"][0] == 50
 
     def test_no_prior_entry_submits(self):
         svc = _make_service()
@@ -133,6 +150,30 @@ class TestSetFixedSpeedDeduplication:
         svc.set_fixed_speed(1, {"channel": "pump", "duty": 100})
 
         svc._executor.submit.assert_called_once()
+
+    def test_timeout_raises_and_keeps_cache_unset(self):
+        svc = _make_service()
+        svc.devices = {1: MagicMock()}
+        svc.previous_duty = {}
+        future_mock = MagicMock()
+        future_mock.result.side_effect = FuturesTimeoutError()
+        svc._executor.submit.return_value = future_mock
+
+        with pytest.raises(LiquidctlException, match="Timeout setting speed"):
+            svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
+
+        assert svc.previous_duty == {}
+
+    def test_device_error_propagates(self):
+        svc = _make_service()
+        svc.devices = {1: MagicMock()}
+        svc.previous_duty = {}
+        future_mock = MagicMock()
+        future_mock.result.side_effect = RuntimeError("could not write to device")
+        svc._executor.submit.return_value = future_mock
+
+        with pytest.raises(RuntimeError, match="could not write to device"):
+            svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
 
 
 def _make_future(return_value=None):
@@ -191,7 +232,7 @@ class TestSetColor:
         with pytest.raises(BadRequestException, match="No device matching"):
             svc.set_color("NonExistent", "ring", "fixed", [(255, 0, 0)])
 
-    def test_timeout_is_swallowed(self):
+    def test_timeout_raises(self):
         svc = _make_service()
         dev = MagicMock()
         dev.description = "Kraken X63"
@@ -200,7 +241,8 @@ class TestSetColor:
         future_mock.result.side_effect = FuturesTimeoutError()
         svc._executor.submit.return_value = future_mock
 
-        svc.set_color("Kraken", "ring", "fixed", [(255, 0, 0)])
+        with pytest.raises(LiquidctlException, match="Timeout setting color"):
+            svc.set_color("Kraken", "ring", "fixed", [(255, 0, 0)])
 
 
 class TestDisconnectAll:
