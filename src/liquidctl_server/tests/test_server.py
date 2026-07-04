@@ -12,7 +12,6 @@ from liquidctl_server.models import (
     BadRequestException,
     BridgeResponse,
     MessageStatus,
-    PipeError,
 )
 from liquidctl_server.server import process_request
 
@@ -137,32 +136,6 @@ class TestSetupLogging:
         assert mock_bc.call_args.kwargs["level"] == logging.INFO
 
 
-def _fake_pipe(messages):
-    pipe = MagicMock()
-    pipe.shutdown_event.is_set.side_effect = [False] * len(messages) + [True]
-    pipe.read.side_effect = messages
-    return pipe
-
-
-class TestRunServerLoop:
-    def test_message_is_processed_and_response_written(self):
-        pipe = _fake_pipe([b'{"command":"get.statuses"}'])
-        server.run_server_loop(_mock_service(), pipe)
-        pipe.write.assert_called_once()
-
-    def test_empty_read_sleeps_without_writing(self):
-        pipe = _fake_pipe([None])
-        with patch("liquidctl_server.server.time.sleep") as mock_sleep:
-            server.run_server_loop(_mock_service(), pipe)
-        mock_sleep.assert_called_once()
-        pipe.write.assert_not_called()
-
-    def test_pipe_error_on_write_is_swallowed(self):
-        pipe = _fake_pipe([b'{"command":"get.statuses"}'])
-        pipe.write.side_effect = PipeError("client gone")
-        server.run_server_loop(_mock_service(), pipe)
-
-
 def _make_context_manager(mock_cls):
     mock_cls.return_value.__enter__.return_value = mock_cls.return_value
     mock_cls.return_value.__exit__.return_value = False
@@ -172,38 +145,38 @@ def _make_context_manager(mock_cls):
 def _patched_main():
     with (
         patch("liquidctl_server.server.LiquidctlService") as service_cls,
-        patch("liquidctl_server.server.Server") as server_cls,
-        patch("liquidctl_server.server.run_server_loop") as run_loop,
+        patch("liquidctl_server.server.PipeServer") as pipe_server_cls,
         patch("liquidctl_server.server.setup_logging") as setup_logging,
-        patch("liquidctl_server.server.threading.Thread"),
+        patch(
+            "liquidctl_server.server.time.sleep", side_effect=KeyboardInterrupt
+        ) as sleep,
     ):
         _make_context_manager(service_cls)
-        _make_context_manager(server_cls)
         yield {
             "LiquidctlService": service_cls,
-            "Server": server_cls,
-            "run_server_loop": run_loop,
+            "PipeServer": pipe_server_cls,
             "setup_logging": setup_logging,
+            "sleep": sleep,
         }
 
 
 class TestMain:
-    def test_initializes_service_and_runs_loop(self):
+    def test_initializes_service_and_starts_servers(self):
         with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
             server.main()
         mocks["LiquidctlService"].return_value.initialize_all.assert_called_once()
-        mocks["run_server_loop"].assert_called_once()
+        assert mocks["PipeServer"].return_value.start.call_count == 2
 
     def test_default_pipe_names(self):
         with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
             server.main()
-        names = [c.kwargs["name"] for c in mocks["Server"].call_args_list]
+        names = [c.args[0] for c in mocks["PipeServer"].call_args_list]
         assert names == ["LiquidCtlPipe", "LiquidCtlPipeRgb"]
 
     def test_test_flag_adds_suffix(self):
         with _patched_main() as mocks, patch.object(sys, "argv", ["prog", "--test"]):
             server.main()
-        names = [c.kwargs["name"] for c in mocks["Server"].call_args_list]
+        names = [c.args[0] for c in mocks["PipeServer"].call_args_list]
         assert names == ["LiquidCtlPipeTest", "LiquidCtlPipeTestRgb"]
 
     def test_env_var_overrides_log_level(self):
@@ -215,19 +188,16 @@ class TestMain:
             server.main()
         mocks["setup_logging"].assert_called_once_with("DEBUG")
 
-    def test_keyboard_interrupt_is_handled(self):
+    def test_keyboard_interrupt_stops_servers(self):
         with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
-            mocks["run_server_loop"].side_effect = KeyboardInterrupt
             server.main()
-
-    def test_pipe_error_is_handled(self):
-        with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
-            mocks["run_server_loop"].side_effect = PipeError("closed")
-            server.main()
+        assert mocks["PipeServer"].return_value.stop.call_count == 2
 
     def test_fatal_exception_exits_with_code_1(self):
         with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
-            mocks["run_server_loop"].side_effect = RuntimeError("boom")
+            mocks[
+                "LiquidctlService"
+            ].return_value.initialize_all.side_effect = RuntimeError("boom")
             with pytest.raises(SystemExit) as exc_info:
                 server.main()
         assert exc_info.value.code == 1
