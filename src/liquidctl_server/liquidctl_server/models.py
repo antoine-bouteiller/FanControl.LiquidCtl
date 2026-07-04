@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum
+from enum import Enum
 from typing import List, Optional, Union
 
 import msgspec
@@ -61,21 +61,6 @@ class DeviceStatus(msgspec.Struct):
     description: str
     status: List[StatusValue]
     speed_channels: List[str] = []
-
-
-class Mode(IntEnum):
-    """Pipe communication modes."""
-
-    MASTER = 0
-    SLAVE = 1
-
-    @classmethod
-    def is_slave(cls, mode: int) -> bool:
-        return mode & 3 == cls.SLAVE
-
-    @classmethod
-    def is_master(cls, mode: int) -> bool:
-        return mode & 3 == cls.MASTER
 
 
 class PipeError(Exception):

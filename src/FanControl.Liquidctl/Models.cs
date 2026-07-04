@@ -7,9 +7,7 @@ namespace FanControl.LiquidCtl
     {
         public const int PipeConnectTimeoutMs = 2000;
         public const int RequestTimeoutMs = 5000;
-        public const int HandshakeTimeoutMs = 2000;
 
-        public const int MaxRequestRetries = 5;
         public const int MaxInitRetries = 3;
         public const int RetryDelayMs = 1000;
 
@@ -18,15 +16,6 @@ namespace FanControl.LiquidCtl
         public const int ShutdownTimeoutMs = 3000;
 
         public const int StatusCacheExpiryMs = 2000;
-    }
-
-    public enum ConnectionState
-    {
-        Disconnected,
-        Connecting,
-        Connected,
-        Ready,
-        Faulted
     }
 
     internal sealed class PipeRequest
