@@ -50,10 +50,9 @@
     },
     {
       matchManagers: ['pip_requirements', 'pip-compile', 'pep621', 'uv'],
-      matchDepTypes: ['devDependencies', 'dev', 'optional-dependencies'],
+      matchDepTypes: ['dependency-groups', 'project.optional-dependencies', 'tool.uv.dev-dependencies', 'devDependencies', 'dev', 'optional-dependencies'],
       addLabels: ['renovate/python'],
-      semanticCommitType: 'test',
-      semanticCommitScope: 'deps',
+      semanticCommitScope: 'deps-dev',
       commitMessageTopic: 'package {{depName}}',
     },
     {
