@@ -52,6 +52,18 @@ class TestSetNumberOfDevices:
         executor.set_number_of_devices(0)
         assert executor.device_queue_empty(1) is True
 
+    def test_reinit_shuts_down_previous_pool(self):
+        executor = DeviceExecutor()
+        executor.set_number_of_devices(1)
+        first_pool = executor._thread_pool
+
+        executor.set_number_of_devices(2)
+        try:
+            assert first_pool._shutdown
+            assert executor.submit(2, lambda: 7).result(timeout=2.0) == 7
+        finally:
+            executor.shutdown()
+
 
 class TestSubmitAndShutdown:
     def test_submit_runs_job_and_returns_result(self):
