@@ -2,13 +2,16 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    public sealed class LiquidCtlPlugin : IPlugin2, IDisposable
+    public sealed class LiquidCtlPlugin : IPlugin3, IDisposable
     {
         public string Name => "liquidctl";
+
+        public event Action? RefreshRequested;
 
         private readonly Dictionary<string, DeviceSensor> sensors = [];
         private readonly Dictionary<int, string> descriptionsById = [];
         private readonly ILiquidctlClient liquidctl;
+        private bool _refreshRequested;
         private bool _disposed;
 
         public LiquidCtlPlugin(IPluginLogger logger) : this(new LiquidctlClient(logger)) { }
@@ -31,6 +34,12 @@ namespace FanControl.LiquidCtl
         public void Load(IPluginSensorsContainer _container)
         {
             ArgumentNullException.ThrowIfNull(_container);
+
+            // FanControl re-calls Load after a RefreshRequested, so mapping
+            // state must be rebuilt from scratch.
+            sensors.Clear();
+            descriptionsById.Clear();
+            _refreshRequested = false;
 
             IReadOnlyList<DeviceStatus> devices = liquidctl.GetStatuses();
             SensorSet mapped = SensorMapper.Map(devices, liquidctl);
@@ -64,8 +73,11 @@ namespace FanControl.LiquidCtl
 
             foreach (DeviceStatus device in devices)
             {
-                // Devices absent at Load time have no sensors created for them.
-                if (!descriptionsById.TryGetValue(device.Id, out string? description)) { continue; }
+                if (!descriptionsById.TryGetValue(device.Id, out string? description))
+                {
+                    RequestRefreshOnce();
+                    continue;
+                }
 
                 foreach (StatusValue channel in device.Status)
                 {
@@ -88,6 +100,15 @@ namespace FanControl.LiquidCtl
                     sensor.MarkStale();
                 }
             }
+        }
+
+        // Latched until the next Load so a lingering unknown device cannot
+        // trigger a refresh storm.
+        private void RequestRefreshOnce()
+        {
+            if (_refreshRequested) return;
+            _refreshRequested = true;
+            RefreshRequested?.Invoke();
         }
 
         public void Dispose()

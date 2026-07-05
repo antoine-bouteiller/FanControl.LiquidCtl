@@ -257,4 +257,59 @@ public sealed class LiquidctlPluginTests
         Assert.Equal(30.0f, container.TempSensors[0].Value);
         Assert.Null(container.TempSensors[1].Value);
     }
+
+    [WindowsOnlyFact]
+    public void Update_UnknownDevice_RaisesRefreshRequestedOnce()
+    {
+        using var client = new FakeLiquidctlClient { StatusesToReturn = [MakeDevice()] };
+        using var plugin = new LiquidCtlPlugin(client);
+        int refreshCount = 0;
+        plugin.RefreshRequested += () => refreshCount++;
+        plugin.Load(new FakeContainer());
+
+        DeviceStatus unknownDevice = new() { Id = 2, Description = "New Device", Status = [] };
+        client.StatusesToReturn = [MakeDevice(), unknownDevice];
+        plugin.Update();
+        plugin.Update();
+
+        Assert.Equal(1, refreshCount);
+    }
+
+    [WindowsOnlyFact]
+    public void Update_UnknownDeviceAfterReload_RaisesRefreshRequestedAgain()
+    {
+        using var client = new FakeLiquidctlClient { StatusesToReturn = [MakeDevice()] };
+        using var plugin = new LiquidCtlPlugin(client);
+        int refreshCount = 0;
+        plugin.RefreshRequested += () => refreshCount++;
+        plugin.Load(new FakeContainer());
+
+        DeviceStatus newDevice = new() { Id = 2, Description = "New Device", Status = [] };
+        client.StatusesToReturn = [MakeDevice(), newDevice];
+        plugin.Update();
+        plugin.Load(new FakeContainer());
+        DeviceStatus thirdDevice = new() { Id = 3, Description = "Third Device", Status = [] };
+        client.StatusesToReturn = [MakeDevice(), newDevice, thirdDevice];
+        plugin.Update();
+
+        Assert.Equal(2, refreshCount);
+    }
+
+    [WindowsOnlyFact]
+    public void Load_CalledTwice_DoesNotDuplicateSensors()
+    {
+        using var client = new FakeLiquidctlClient
+        {
+            StatusesToReturn = [MakeDevice(status: [MakeStatus(key: "Liquid temperature", value: 27.0, unit: "°C")])]
+        };
+        using var plugin = new LiquidCtlPlugin(client);
+        plugin.Load(new FakeContainer());
+        var secondContainer = new FakeContainer();
+
+        plugin.Load(secondContainer);
+        client.StatusesToReturn = [MakeDevice(status: [MakeStatus(key: "Liquid temperature", value: 30.0, unit: "°C")])];
+        plugin.Update();
+
+        Assert.Equal(30.0f, Assert.Single(secondContainer.TempSensors).Value);
+    }
 }
