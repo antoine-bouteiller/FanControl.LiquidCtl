@@ -28,6 +28,9 @@ class PipeServer:
         if self._thread.is_alive():
             self._thread.join(timeout=2.0)
 
+    def is_alive(self) -> bool:
+        return self._thread.is_alive()
+
     def _close_handle(self) -> None:
         with self._handle_lock:
             if self._handle is not None:
@@ -56,6 +59,8 @@ class PipeServer:
             except PipeError as err:
                 if not self._shutdown.is_set():
                     logger.info(f"Client session ended: {err}")
+            except Exception:
+                logger.exception(f"Unexpected error serving client on {self.name}")
             finally:
                 self._close_handle()
 
