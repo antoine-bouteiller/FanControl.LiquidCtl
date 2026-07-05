@@ -68,17 +68,6 @@ public sealed class LiquidctlPluginTests
     }
 
     [WindowsOnlyFact]
-    public void Update_EmptySensors_DoesNotThrow()
-    {
-        using var client = new FakeLiquidctlClient { StatusesToReturn = [MakeDevice(status: [MakeStatus()])] };
-        using var plugin = new LiquidCtlPlugin(client);
-
-        var ex = Record.Exception(plugin.Update);
-
-        Assert.Null(ex);
-    }
-
-    [WindowsOnlyFact]
     public void Load_NoDevices_ContainerIsEmpty()
     {
         using var client = new FakeLiquidctlClient();

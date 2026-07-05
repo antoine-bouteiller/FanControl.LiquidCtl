@@ -88,17 +88,3 @@ def test_control_hub_uses_speed_channels_keys():
 def test_h1v2_uses_speed_channels_keys():
     device = _fake(H1V2, _speed_channels={"fan1": (0, False)})
     assert speed_channels(device) == ["fan1"]
-
-
-def main():
-    test_commander_pro_uses_fan_names()
-    test_commander_core_pump_gated_on_has_pump()
-    test_unknown_device_has_no_speed_channels()
-    test_smart_device2_uses_speed_channels_keys()
-    test_hydro_platinum_uses_fan_names()
-    test_hydro_platinum_empty_fan_names()
-    print("test_speed_channels: OK")
-
-
-if __name__ == "__main__":
-    main()

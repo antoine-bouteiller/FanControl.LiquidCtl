@@ -150,4 +150,140 @@ public sealed class LiquidctlClientTests
         Assert.Contains("pump", received, StringComparison.Ordinal);
         Assert.Contains("80", received, StringComparison.Ordinal);
     }
+
+    [SupportedOSPlatform("windows")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The server is owned and disposed by the returned worker thread via using.")]
+    private static Thread StartMultiRequestServer(
+        List<string> received, object receivedLock, int delayFirstRequestMs,
+        string responseJson = """{"status":"success","data":null}""")
+    {
+        var server = new NamedPipeServerStream(
+            PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+
+        var thread = new Thread(() =>
+        {
+            using (server)
+            {
+                server.WaitForConnection();
+                var buffer = new byte[65536];
+                bool first = true;
+                while (true)
+                {
+                    int read;
+                    try
+                    {
+                        read = server.Read(buffer, 0, buffer.Length);
+                    }
+                    catch (IOException)
+                    {
+                        return;
+                    }
+                    if (read == 0) return;
+
+                    lock (receivedLock) received.Add(Encoding.UTF8.GetString(buffer, 0, read));
+
+                    if (first)
+                    {
+                        first = false;
+                        Thread.Sleep(delayFirstRequestMs);
+                    }
+
+                    byte[] response = Encoding.UTF8.GetBytes(responseJson);
+                    try
+                    {
+                        server.Write(response, 0, response.Length);
+                        server.Flush();
+                    }
+                    catch (IOException)
+                    {
+                        return;
+                    }
+                }
+            }
+        });
+        thread.Start();
+        return thread;
+    }
+
+    // Regression: DrainPendingSpeeds coalesces same-channel writes so a slow
+    // server doesn't force one round trip per Set call - only the count and
+    // the final value are guaranteed, not the exact number of round trips.
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void SetFixedSpeed_RapidCallsForSameChannel_CoalescesToLastDuty()
+    {
+        var received = new List<string>();
+        var receivedLock = new object();
+        var serverThread = StartMultiRequestServer(received, receivedLock, delayFirstRequestMs: 300);
+
+        using var client = new LiquidctlClient(new FakeLogger());
+        for (int duty = 1; duty <= 10; duty++)
+        {
+            client.SetFixedSpeed(new FixedSpeedRequest
+            {
+                DeviceId = 3,
+                SpeedKwargs = new SpeedKwargs { Channel = "fan1", Duty = duty }
+            });
+        }
+
+        DateTime overallDeadlineUtc = DateTime.UtcNow.AddSeconds(10);
+        int lastCount = -1;
+        DateTime lastChangeUtc = DateTime.UtcNow;
+        while (DateTime.UtcNow < overallDeadlineUtc)
+        {
+            int count;
+            lock (receivedLock) count = received.Count;
+            if (count != lastCount)
+            {
+                lastCount = count;
+                lastChangeUtc = DateTime.UtcNow;
+            }
+            else if ((DateTime.UtcNow - lastChangeUtc).TotalMilliseconds > 1000)
+            {
+                break;
+            }
+            Thread.Sleep(50);
+        }
+
+        client.Dispose();
+        serverThread.Join(5000);
+
+        List<string> snapshot;
+        lock (receivedLock) snapshot = [.. received];
+
+        Assert.True(snapshot.Count < 10, $"Expected coalescing to reduce request count below 10, got {snapshot.Count}");
+        Assert.Contains("\"duty\":10", snapshot[^1], StringComparison.Ordinal);
+    }
+
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void GetStatuses_ServerReturnsError_LogsBridgeErrorAndReturnsEmpty()
+    {
+        const string response = """{"status":"error","data":null,"error":"boom"}""";
+        var serverThread = StartOneShotServer(response);
+        var logger = new FakeLogger();
+        using var client = new LiquidctlClient(logger);
+
+        IReadOnlyList<DeviceStatus> result = client.GetStatuses();
+        serverThread.Join(5000);
+
+        Assert.Empty(result);
+        Assert.Contains(logger.Messages, m => m.Contains("Bridge error", StringComparison.Ordinal));
+    }
+
+    [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
+    public void GetStatuses_ServerReturnsInvalidJson_LogsInvalidResponseAndReturnsEmpty()
+    {
+        var serverThread = StartOneShotServer("not json");
+        var logger = new FakeLogger();
+        using var client = new LiquidctlClient(logger);
+
+        IReadOnlyList<DeviceStatus> result = client.GetStatuses();
+        serverThread.Join(5000);
+
+        Assert.Empty(result);
+        Assert.Contains(logger.Messages, m => m.Contains("Invalid response", StringComparison.Ordinal));
+    }
 }

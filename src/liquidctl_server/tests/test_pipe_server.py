@@ -39,6 +39,10 @@ def _echo_upper(request: bytes) -> bytes:
     return request.upper()
 
 
+def _echo(request: bytes) -> bytes:
+    return request
+
+
 class TestPipeServer:
     def test_request_response_roundtrip(self):
         server = PipeServer("LiquidCtlPipeTest_RT", _echo_upper)
@@ -98,6 +102,19 @@ class TestPipeServer:
             assert not server._thread.is_alive()
         finally:
             client.close()
+
+    def test_large_payload_survives_roundtrip(self):
+        payload = b"x" * 100_000
+        server = PipeServer("LiquidCtlPipeTest_LARGE", _echo)
+        server.start()
+        client = None
+        try:
+            client = _PipeClient(server.name)
+            assert client.request(payload) == payload
+        finally:
+            if client is not None:
+                client.close()
+            server.stop()
 
     def test_handler_crash_keeps_server_alive_for_next_client(self):
         calls = []

@@ -96,4 +96,19 @@ public sealed class ModelsTests
         Assert.Contains("\"channel\"", json, StringComparison.Ordinal);
         Assert.Contains("\"duty\"", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CachedStatuses_JustCreated_IsNotExpired()
+    {
+        var cached = new CachedStatuses([]);
+        Assert.False(cached.IsExpired);
+    }
+
+    [Fact]
+    public void CachedStatuses_OlderThanExpiryWindow_IsExpired()
+    {
+        var timestamp = DateTime.UtcNow.AddMilliseconds(-(BridgeConfig.StatusCacheExpiryMs + 1));
+        var cached = new CachedStatuses([], timestamp);
+        Assert.True(cached.IsExpired);
+    }
 }
