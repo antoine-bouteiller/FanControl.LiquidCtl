@@ -22,10 +22,17 @@ namespace FanControl.LiquidCtl
             {
                 if (_process.EnsureRunning())
                 {
-                    Thread.Sleep(BridgeConfig.BridgeStartupDelayMs);
-                    // An empty device list is a valid outcome; only a transport
-                    // failure (null) is worth retrying.
-                    if (RequestStatuses() != null) return;
+                    // Poll instead of sleeping the full startup delay: the bridge
+                    // may already be up, so return as soon as it responds.
+                    DateTime deadline = DateTime.UtcNow.AddMilliseconds(BridgeConfig.BridgeStartupDelayMs);
+                    do
+                    {
+                        _transport.ResetBackoff();
+                        // An empty device list is a valid outcome; only a transport
+                        // failure (null) is worth retrying.
+                        if (RequestStatuses() != null) return;
+                        Thread.Sleep(500);
+                    } while (DateTime.UtcNow < deadline);
                 }
 
                 _logger.Log($"[LiquidCtl] Init attempt {attempt}/{BridgeConfig.MaxInitRetries} failed, retrying in {BridgeConfig.RetryDelayMs}ms...");
