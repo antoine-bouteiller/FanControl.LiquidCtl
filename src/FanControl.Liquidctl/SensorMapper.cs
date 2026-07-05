@@ -12,11 +12,11 @@ namespace FanControl.LiquidCtl
         internal static SensorSet Map(IReadOnlyList<DeviceStatus> devices, ILiquidctlClient client)
         {
             var mapped = new SensorSet();
-            ISet<string> duplicates = DuplicateDescriptions(devices);
+            Dictionary<int, string> descriptionsById = EffectiveDescriptionsById(devices);
 
             foreach (DeviceStatus device in devices)
             {
-                string description = EffectiveDescription(device, duplicates);
+                string description = descriptionsById[device.Id];
 
                 foreach (StatusValue channel in device.Status)
                 {
@@ -56,6 +56,14 @@ namespace FanControl.LiquidCtl
             return duplicates.Contains(device.Description)
                 ? $"{device.Description} #{device.Id}"
                 : device.Description;
+        }
+
+        // Single source of truth for device id -> effective description, so
+        // Load (via Map) and Update always agree even if devices drop out.
+        internal static Dictionary<int, string> EffectiveDescriptionsById(IReadOnlyList<DeviceStatus> devices)
+        {
+            ISet<string> duplicates = DuplicateDescriptions(devices);
+            return devices.ToDictionary(device => device.Id, device => EffectiveDescription(device, duplicates));
         }
 
         private static ControlSensor CreateControl(DeviceStatus device, string description, StatusValue channel, ILiquidctlClient client)
