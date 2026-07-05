@@ -1,8 +1,9 @@
 import logging
 import time
+import zlib
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import liquidctl
 from liquidctl.driver.base import BaseDriver
@@ -24,6 +25,24 @@ from liquidctl_server.service.config import (
 from liquidctl_server.service.executor import DeviceExecutor
 
 logger = logging.getLogger(__name__)
+
+
+def _stable_device_id(lc_device: BaseDriver, taken: Set[int]) -> int:
+    """Derive a device id from device identity instead of discovery order.
+
+    The plugin captures this id at load and reuses it for every duty write
+    for as long as the bridge runs, so it must survive bridge restarts even
+    if hardware changes shift discovery order.
+    """
+    try:
+        serial = getattr(lc_device, "serial_number", None)
+    except Exception:
+        serial = None
+    key = f"{lc_device.description}|{serial}|{getattr(lc_device, 'address', None)}"
+    device_id = zlib.crc32(key.encode()) & 0x7FFFFFFF or 1
+    while device_id in taken:
+        device_id += 1
+    return device_id
 
 
 class LiquidctlService:
@@ -88,10 +107,16 @@ class LiquidctlService:
             logger.info("No Liquidctl devices left after filtering")
             return
 
-        self._executor.set_number_of_devices(len(found_devices))
+        taken: Set[int] = set()
+        device_ids: List[int] = []
+        for lc_device in found_devices:
+            device_id = _stable_device_id(lc_device, taken)
+            taken.add(device_id)
+            device_ids.append(device_id)
 
-        for index, lc_device in enumerate(found_devices):
-            device_id = index + 1
+        self._executor.set_devices(device_ids)
+
+        for device_id, lc_device in zip(device_ids, found_devices):
             try:
                 self._connect_device(device_id, lc_device)
                 self.devices[device_id] = lc_device
@@ -231,6 +256,15 @@ class LiquidctlService:
 
         channel = speed_kwargs.get("channel")
         duty = speed_kwargs.get("duty")
+        if (
+            not isinstance(duty, int)
+            or isinstance(duty, bool)
+            or not (0 <= duty <= 100)
+        ):
+            raise BadRequestException(
+                f"Invalid duty value: {duty!r}, must be an int in [0, 100]"
+            )
+
         cache_key = f"{device_id}_{channel}"
 
         if self._is_duty_fresh(cache_key, duty):
@@ -375,6 +409,10 @@ class LiquidctlService:
 
         result: List[StatusValue] = []
         for status in statuses:
+            if len(status) < 3:
+                logger.warning(f"Skipping malformed status tuple: {status!r}")
+                continue
+
             try:
                 value = float(status[1])
             except ValueError, TypeError:
