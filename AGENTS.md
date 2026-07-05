@@ -4,7 +4,7 @@ FanControl plugin that bridges liquidctl (Python) into FanControl (Windows) to c
 
 ## Tech Stack
 
-- **C# Plugin:** .NET 10, IPlugin2 interface
+- **C# Plugin:** .NET 10, IPlugin3 interface
 - **Python Bridge:** Python 3.14+, uv, liquidctl
 - **IPC:** Named Pipes with JSON serialization (msgspec on the Python side)
 
@@ -31,7 +31,7 @@ cd src/liquidctl_server && uv run pytest tests/
 
 ```
 src/FanControl.Liquidctl/
-├── LiquidctlPlugin.cs        # Main plugin (IPlugin2)
+├── LiquidctlPlugin.cs        # Main plugin (IPlugin3)
 ├── LiquidctlClient.cs        # Bridge client (domain logic)
 ├── BridgeProcess.cs          # Bridge exe lifecycle
 ├── PipeTransport.cs          # Framed pipe I/O, timeout, backoff
@@ -50,7 +50,7 @@ src/liquidctl_server/
 ## Documentation
 
 - [Architecture](agents/architecture.md) - Component structure, data models
-- [Plugin Interface](agents/plugin-interface.md) - IPlugin2, sensor pairing, lifecycle
+- [Plugin Interface](agents/plugin-interface.md) - IPlugin3, sensor pairing, lifecycle
 - [Protocol](agents/protocol.md) - Named pipes, commands, message format
 - [Development](agents/development.md) - Error handling, performance, building
 - [Troubleshooting](agents/troubleshooting.md) - Common issues and solutions
