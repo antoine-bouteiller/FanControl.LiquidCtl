@@ -211,4 +211,61 @@ public sealed class LiquidctlPluginTests
 
         Assert.Equal(30.0f, container.TempSensors[0].Value);
     }
+
+    [WindowsOnlyFact]
+    public void Update_BridgeDies_SensorValueGoesNull()
+    {
+        using var client = new FakeLiquidctlClient
+        {
+            StatusesToReturn = [MakeDevice(status: [MakeStatus(key: "Liquid temperature", value: 27.0, unit: "°C")])]
+        };
+        using var plugin = new LiquidCtlPlugin(client);
+        var container = new FakeContainer();
+        plugin.Load(container);
+
+        client.StatusesToReturn = [];
+        plugin.Update();
+
+        Assert.Null(container.TempSensors[0].Value);
+    }
+
+    [WindowsOnlyFact]
+    public void Update_BridgeRecovers_SensorValueRepopulated()
+    {
+        using var client = new FakeLiquidctlClient
+        {
+            StatusesToReturn = [MakeDevice(status: [MakeStatus(key: "Liquid temperature", value: 27.0, unit: "°C")])]
+        };
+        using var plugin = new LiquidCtlPlugin(client);
+        var container = new FakeContainer();
+        plugin.Load(container);
+
+        client.StatusesToReturn = [];
+        plugin.Update();
+        client.StatusesToReturn = [MakeDevice(status: [MakeStatus(key: "Liquid temperature", value: 32.0, unit: "°C")])];
+        plugin.Update();
+
+        Assert.Equal(32.0f, container.TempSensors[0].Value);
+    }
+
+    [WindowsOnlyFact]
+    public void Update_TwoIdenticalDevices_OneDropsOut_SurvivorKeepsUpdatingAndOtherGoesNull()
+    {
+        static DeviceStatus Dev(int id, double value) => new()
+        {
+            Id = id,
+            Description = "NZXT Smart Device",
+            Status = [new StatusValue { Key = "Liquid temperature", Value = value, Unit = "°C" }]
+        };
+        using var client = new FakeLiquidctlClient { StatusesToReturn = [Dev(1, 20.0), Dev(2, 25.0)] };
+        using var plugin = new LiquidCtlPlugin(client);
+        var container = new FakeContainer();
+        plugin.Load(container);
+
+        client.StatusesToReturn = [Dev(1, 30.0)];
+        plugin.Update();
+
+        Assert.Equal(30.0f, container.TempSensors[0].Value);
+        Assert.Null(container.TempSensors[1].Value);
+    }
 }

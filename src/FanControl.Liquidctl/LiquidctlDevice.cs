@@ -15,6 +15,16 @@ namespace FanControl.LiquidCtl
             Channel = status;
         }
 
+        // Marks the sensor's value unknown instead of leaving it frozen on the
+        // last reading when the bridge stops reporting this channel.
+        internal void MarkStale()
+        {
+            if (Channel.Value != null)
+            {
+                Channel = new StatusValue { Key = Channel.Key, Value = null, Unit = Channel.Unit };
+            }
+        }
+
         internal DeviceStatus Device { get; }
         internal string Description { get; }
         internal StatusValue Channel { get; set; }
