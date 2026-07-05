@@ -61,4 +61,50 @@ public sealed class SensorMapperTests
         Assert.Single(mapped.Controls);
         Assert.Empty(mapped.Fans);
     }
+
+    [WindowsOnlyFact]
+    public void Map_SpeedChannelWithoutStatus_AuthoritativeControlHasNullPairedId()
+    {
+        using var client = new FakeLiquidctlClient();
+        var devices = new List<DeviceStatus> { MakeDevice(speedChannels: ["fan1"]) };
+
+        SensorSet mapped = SensorMapper.Map(devices, client);
+
+        Assert.Null(Assert.Single(mapped.Controls).PairedFanSensorId);
+    }
+
+    [WindowsOnlyFact]
+    public void Map_SpeedChannelWithDutyStatus_SkipsAuthoritativeControl()
+    {
+        using var client = new FakeLiquidctlClient();
+        var devices = new List<DeviceStatus>
+        {
+            MakeDevice(
+                status: [MakeStatus(key: "Fan 1 duty", value: 50.0, unit: "%")],
+                speedChannels: ["fan1"])
+        };
+
+        SensorSet mapped = SensorMapper.Map(devices, client);
+
+        Assert.Single(mapped.Controls);
+    }
+
+    [WindowsOnlyFact]
+    public void Map_SpeedChannelWithSpeedStatus_AuthoritativeControlPairsWithFanSensor()
+    {
+        using var client = new FakeLiquidctlClient();
+        var devices = new List<DeviceStatus>
+        {
+            MakeDevice(
+                status: [MakeStatus(key: "Fan 1 speed", value: 1200.0, unit: "rpm")],
+                speedChannels: ["fan1"])
+        };
+
+        SensorSet mapped = SensorMapper.Map(devices, client);
+
+        DeviceSensor fanSensor = Assert.Single(mapped.Fans);
+        ControlSensor control = Assert.Single(mapped.Controls);
+        Assert.Equal(fanSensor.Id, control.PairedFanSensorId);
+        Assert.Equal("NZXTSmartDevice/Fan1speed", control.PairedFanSensorId);
+    }
 }

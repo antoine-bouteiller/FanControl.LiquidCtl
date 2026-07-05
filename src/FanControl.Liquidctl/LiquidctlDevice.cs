@@ -69,7 +69,7 @@ namespace FanControl.LiquidCtl
                 DeviceId = Device.Id,
                 SpeedKwargs = new SpeedKwargs
                 {
-                    Duty = (int)Math.Round(val),
+                    Duty = Math.Clamp((int)Math.Round(val), 0, 100),
                     Channel = channelName
                 }
             });
