@@ -3,11 +3,12 @@ using FanControl.Plugins;
 
 namespace FanControl.LiquidCtl
 {
-    internal sealed class PipeTransport(IPluginLogger logger) : IDisposable
+    internal sealed class PipeTransport(IPluginLogger logger, int requestTimeoutMs = BridgeConfig.RequestTimeoutMs) : IDisposable
     {
         private const string PipeName = "LiquidCtlPipe";
 
         private readonly IPluginLogger _logger = logger;
+        private readonly int _requestTimeoutMs = requestTimeoutMs;
         private readonly object _lock = new();
         private NamedPipeClientStream? _pipe;
         private bool _messageMode;
@@ -22,7 +23,7 @@ namespace FanControl.LiquidCtl
 
                 try
                 {
-                    using var cts = new CancellationTokenSource(BridgeConfig.RequestTimeoutMs);
+                    using var cts = new CancellationTokenSource(_requestTimeoutMs);
                     _pipe!.Write(payload, 0, payload.Length);
                     _pipe.Flush();
                     return ReadMessage(cts.Token);

@@ -91,10 +91,10 @@ namespace FanControl.LiquidCtl
         public IReadOnlyList<string> SpeedChannels { get; init; } = [];
     }
 
-    internal sealed class CachedStatuses(IReadOnlyList<DeviceStatus> statuses)
+    internal sealed class CachedStatuses(IReadOnlyList<DeviceStatus> statuses, DateTime? timestamp = null)
     {
         public IReadOnlyList<DeviceStatus> Statuses { get; } = statuses;
-        public DateTime Timestamp { get; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; } = timestamp ?? DateTime.UtcNow;
 
         public bool IsExpired => (DateTime.UtcNow - Timestamp).TotalMilliseconds > BridgeConfig.StatusCacheExpiryMs;
     }
