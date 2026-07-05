@@ -1,5 +1,6 @@
 import logging
 import time
+from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -124,19 +125,28 @@ class LiquidctlService:
         if not self.devices:
             return []
 
+        # Submit every device's status job up front so they run concurrently
+        # (the executor dedicates one worker per device) instead of paying
+        # each device's worst-case wait one after another.
+        status_jobs = {
+            device_id: self._executor.submit(device_id, lc_device.get_status)
+            for device_id, lc_device in self.devices.items()
+        }
+
         statuses: List[DeviceStatus] = []
         for device_id, lc_device in self.devices.items():
-            status = self._get_current_or_cached_device_status(device_id, lc_device)
+            status = self._get_current_or_cached_device_status(
+                device_id, lc_device, status_jobs[device_id]
+            )
             if status is not None:
                 statuses.append(status)
 
         return statuses
 
     def _get_current_or_cached_device_status(
-        self, device_id: int, lc_device: BaseDriver
+        self, device_id: int, lc_device: BaseDriver, status_job: Future
     ) -> Optional[DeviceStatus]:
         """Get status for a single device, falling back to cache on timeout."""
-        status_job = self._executor.submit(device_id, lc_device.get_status)
         try:
             raw_status = status_job.result(timeout=DEVICE_STATUS_TIMEOUT)
             status_values = self._stringify_status(raw_status)

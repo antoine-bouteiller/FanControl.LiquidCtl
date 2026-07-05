@@ -6,7 +6,8 @@ namespace FanControl.LiquidCtl
     internal static class BridgeConfig
     {
         public const int PipeConnectTimeoutMs = 2000;
-        public const int RequestTimeoutMs = 5000;
+        // Must exceed the bridge's worst-case budget: 5s device-operation timeout plus status-poll overhead.
+        public const int RequestTimeoutMs = 8000;
 
         public const int MaxInitRetries = 3;
         public const int RetryDelayMs = 1000;

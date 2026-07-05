@@ -416,6 +416,34 @@ class TestGetStatuses:
             result = svc.get_statuses()
         assert result == [sentinel]
 
+    def test_submits_all_devices_before_awaiting_any_result(self):
+        svc = _make_service()
+        dev1, dev2 = _device("A"), _device("B")
+        svc.devices = {1: dev1, 2: dev2}
+        call_order = []
+
+        def fake_submit(device_id, fn, **kwargs):
+            call_order.append(("submit", device_id))
+            future = MagicMock()
+            future.result.side_effect = lambda timeout=None: (
+                call_order.append(("result", device_id)) or []
+            )
+            return future
+
+        svc._executor.submit.side_effect = fake_submit
+
+        svc.get_statuses()
+
+        assert call_order == [
+            ("submit", 1),
+            ("submit", 2),
+            ("result", 1),
+            ("result", 2),
+        ]
+        submit_calls = svc._executor.submit.call_args_list
+        assert submit_calls[0].args == (1, dev1.get_status)
+        assert submit_calls[1].args == (2, dev2.get_status)
+
 
 class TestGetCurrentOrCachedStatus:
     def test_success_caches_and_builds(self):
@@ -423,9 +451,8 @@ class TestGetCurrentOrCachedStatus:
         svc.speed_channels = {1: []}
         dev = _device("Kraken")
         future = _make_future([("Fan", 1200, "rpm")])
-        svc._executor.submit.return_value = future
 
-        result = svc._get_current_or_cached_device_status(1, dev)
+        result = svc._get_current_or_cached_device_status(1, dev, future)
 
         assert result.description == "Kraken"
         assert svc.device_status_cache[1][0].value == pytest.approx(1200.0)
@@ -435,13 +462,14 @@ class TestGetCurrentOrCachedStatus:
         svc = _make_service()
         future = MagicMock()
         future.result.side_effect = FuturesTimeoutError()
-        svc._executor.submit.return_value = future
 
         sentinel = object()
         with patch.object(
             svc, "_handle_status_timeout", return_value=sentinel
         ) as handler:
-            result = svc._get_current_or_cached_device_status(1, _device("Kraken"))
+            result = svc._get_current_or_cached_device_status(
+                1, _device("Kraken"), future
+            )
 
         assert result is sentinel
         handler.assert_called_once()
@@ -452,9 +480,8 @@ class TestGetCurrentOrCachedStatus:
         svc.device_status_cache = {1: [StatusValue(key="T", value=28.0, unit="°C")]}
         future = MagicMock()
         future.result.side_effect = RuntimeError("read fail")
-        svc._executor.submit.return_value = future
 
-        result = svc._get_current_or_cached_device_status(1, _device("Kraken"))
+        result = svc._get_current_or_cached_device_status(1, _device("Kraken"), future)
 
         assert result.status[0].value == pytest.approx(28.0)
 
