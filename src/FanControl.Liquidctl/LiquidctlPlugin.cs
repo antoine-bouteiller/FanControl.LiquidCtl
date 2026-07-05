@@ -20,7 +20,7 @@ namespace FanControl.LiquidCtl
 
         public void Close()
         {
-            liquidctl.Dispose();
+            Dispose();
         }
 
         public void Initialize()

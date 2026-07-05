@@ -11,6 +11,7 @@ namespace FanControl.LiquidCtl
         private readonly object _lock = new();
         private Process? _process;
         private bool _missingExeLogged;
+        private bool _disposed;
 
         private static string ResolveExePath()
         {
@@ -22,6 +23,8 @@ namespace FanControl.LiquidCtl
         {
             lock (_lock)
             {
+                if (_disposed) return false;
+
                 if (_process is { HasExited: false }) return true;
 
                 if (!File.Exists(_exePath))
@@ -89,6 +92,12 @@ namespace FanControl.LiquidCtl
             }
         }
 
-        public void Dispose() => Stop();
+        public void Dispose()
+        {
+            // Mark disposed before stopping so a concurrent EnsureRunning call
+            // cannot restart the bridge right after it is killed.
+            lock (_lock) { _disposed = true; }
+            Stop();
+        }
     }
 }

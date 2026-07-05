@@ -87,7 +87,9 @@ namespace FanControl.LiquidCtl
                 string dutyKey = speed != null ? Utils.GetDutyKeyFromSpeedKey(speed.Key) : channelName;
 
                 StatusValue dutyChannel = new() { Key = dutyKey, Value = null, Unit = "%" };
-                string pairedId = Utils.CreateSensorId(description, Utils.GetSpeedKeyFromDutyKey(dutyKey));
+                // No real rpm sensor to pair with when speed is unreported, so
+                // leave the id unset rather than fabricating one that never matches.
+                string? pairedId = speed != null ? Utils.CreateSensorId(description, Utils.GetSpeedKeyFromDutyKey(dutyKey)) : null;
                 mapped.Controls.Add(new ControlSensor(device, description, dutyChannel, client, pairedId, explicitChannelName: channelName));
             }
         }

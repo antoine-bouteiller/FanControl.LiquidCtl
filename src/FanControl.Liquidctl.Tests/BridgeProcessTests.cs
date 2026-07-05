@@ -25,4 +25,13 @@ public sealed class BridgeProcessTests
 
         Assert.Null(ex);
     }
+
+    [WindowsOnlyFact]
+    public void EnsureRunning_AfterDispose_ReturnsFalse()
+    {
+        var process = new BridgeProcess(new FakeLogger());
+        process.Dispose();
+
+        Assert.False(process.EnsureRunning());
+    }
 }

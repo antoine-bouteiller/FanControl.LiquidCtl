@@ -131,4 +131,26 @@ public sealed class ControlSensorTests
 
         Assert.Equal("NZXTKrakenX63/Fan1speed", sensor.PairedFanSensorId);
     }
+
+    [WindowsOnlyFact]
+    public void Set_AboveMax_ClampsDutyTo100()
+    {
+        using var client = new FakeLiquidctlClient();
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(), client, null, "fan1");
+
+        sensor.Set(150.0f);
+
+        Assert.Equal(100, client.SpeedRequests[0].SpeedKwargs.Duty);
+    }
+
+    [WindowsOnlyFact]
+    public void Set_BelowMin_ClampsDutyTo0()
+    {
+        using var client = new FakeLiquidctlClient();
+        var sensor = new ControlSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(), client, null, "fan1");
+
+        sensor.Set(-5.0f);
+
+        Assert.Equal(0, client.SpeedRequests[0].SpeedKwargs.Duty);
+    }
 }
