@@ -201,3 +201,11 @@ class TestMain:
             with pytest.raises(SystemExit) as exc_info:
                 server.main()
         assert exc_info.value.code == 1
+
+    def test_dead_pipe_server_exits_with_code_1_and_stops_servers(self):
+        with _patched_main() as mocks, patch.object(sys, "argv", ["prog"]):
+            mocks["PipeServer"].return_value.is_alive.return_value = False
+            with pytest.raises(SystemExit) as exc_info:
+                server.main()
+        assert exc_info.value.code == 1
+        assert mocks["PipeServer"].return_value.stop.call_count == 2

@@ -131,8 +131,10 @@ def main():
             logger.info(f"RGB Bridge Server listening on \\\\.\\pipe\\{rgb_pipe_name}")
 
             try:
-                while True:
+                while all(server.is_alive() for server in servers):
                     time.sleep(1)
+                logger.critical("A pipe server thread died; exiting for restart")
+                sys.exit(1)
             except KeyboardInterrupt:
                 logger.info("Stopping server...")
             finally:

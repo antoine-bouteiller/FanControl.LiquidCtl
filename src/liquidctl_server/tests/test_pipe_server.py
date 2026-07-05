@@ -98,3 +98,32 @@ class TestPipeServer:
             assert not server._thread.is_alive()
         finally:
             client.close()
+
+    def test_handler_crash_keeps_server_alive_for_next_client(self):
+        calls = []
+
+        def _raise_once(request: bytes) -> bytes:
+            calls.append(request)
+            if len(calls) == 1:
+                raise RuntimeError("boom")
+            return _echo_upper(request)
+
+        server = PipeServer("LiquidCtlPipeTest_CRASH", _raise_once)
+        server.start()
+        first, second = None, None
+        try:
+            first = _PipeClient(server.name)
+            win32_pipe.write_message(first.handle, b"first")
+            first.close()
+            first = None
+
+            assert server.is_alive()
+
+            second = _PipeClient(server.name)
+            assert second.request(b"second") == b"SECOND"
+        finally:
+            if first is not None:
+                first.close()
+            if second is not None:
+                second.close()
+            server.stop()
