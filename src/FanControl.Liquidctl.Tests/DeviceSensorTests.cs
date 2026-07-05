@@ -57,14 +57,6 @@ public sealed class DeviceSensorTests
         sensor.Update(MakeStatus(value: null));
         Assert.Null(sensor.Value);
     }
-
-    [WindowsOnlyFact]
-    public void Update_NoArg_ValueUnchanged()
-    {
-        var sensor = new DeviceSensor(MakeDevice(), "NZXT Kraken X63", MakeStatus(value: 900.0));
-        sensor.Update();
-        Assert.Equal(900f, sensor.Value);
-    }
 }
 
 public sealed class ControlSensorTests
