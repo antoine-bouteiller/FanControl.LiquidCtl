@@ -4,9 +4,9 @@ FanControl plugin that bridges liquidctl (Python) into FanControl (Windows) to c
 
 ## Tech Stack
 
-- **C# Plugin:** .NET 10, IPlugin3 interface
+- **C# Plugin:** .NET 10, IPlugin2 interface
 - **Python Bridge:** Python 3.14+, uv, liquidctl
-- **IPC:** Named Pipes with MessagePack serialization
+- **IPC:** Named Pipes with JSON serialization (msgspec on the Python side)
 
 ## Commands
 
@@ -18,10 +18,10 @@ dotnet build src/FanControl.Liquidctl
 dotnet test src/FanControl.Liquidctl.Tests
 
 # Python Bridge
-cd src/Liquidctl && uv sync && uv build
+cd src/liquidctl_server && uv sync && uv build
 
 # Tests
-cd src/Liquidctl && uv run pytest tests/
+cd src/liquidctl_server && uv run pytest tests/
 
 # Full Release
 .\scripts\release.ps1
@@ -31,21 +31,26 @@ cd src/Liquidctl && uv run pytest tests/
 
 ```
 src/FanControl.Liquidctl/
-├── LiquidctlPlugin.cs        # Main plugin (IPlugin3)
-├── LiquidctlBridgeWrapper.cs # IPC client
+├── LiquidctlPlugin.cs        # Main plugin (IPlugin2)
+├── LiquidctlClient.cs        # Bridge client (domain logic)
+├── BridgeProcess.cs          # Bridge exe lifecycle
+├── PipeTransport.cs          # Framed pipe I/O, timeout, backoff
+├── SensorMapper.cs           # DeviceStatus -> sensors
 └── LiquidctlDevice.cs        # Sensor classes
 
-src/Liquidctl/
-├── liquidctl/
-│   ├── __main__.py           # Entry point
-│   └── bridge.py             # Bridge logic
+src/liquidctl_server/
+├── liquidctl_server/
+│   ├── server.py             # Entry point, command handlers
+│   ├── pipe_server.py        # Named-pipe server loop
+│   ├── win32_pipe.py         # Win32 pipe layer
+│   └── service/              # liquidctl service, executor, quirks, config
 └── pyproject.toml
 ```
 
 ## Documentation
 
 - [Architecture](agents/architecture.md) - Component structure, data models
-- [Plugin Interface](agents/plugin-interface.md) - IPlugin3, sensor pairing, lifecycle
+- [Plugin Interface](agents/plugin-interface.md) - IPlugin2, sensor pairing, lifecycle
 - [Protocol](agents/protocol.md) - Named pipes, commands, message format
 - [Development](agents/development.md) - Error handling, performance, building
 - [Troubleshooting](agents/troubleshooting.md) - Common issues and solutions
