@@ -107,6 +107,42 @@ class TestSetLed:
         assert resp.status == MessageStatus.ERROR
         assert "Missing data" in resp.error
 
+    def test_short_color_returns_error(self):
+        svc = _mock_service()
+        payload = json.dumps(
+            {
+                "command": "set.led",
+                "data": {
+                    "device": "Kraken X63",
+                    "channel": "ring",
+                    "mode": "fixed",
+                    "colors": [[255, 0]],
+                },
+            }
+        ).encode()
+        resp = _decode(process_request(payload, svc))
+        assert resp.status == MessageStatus.ERROR
+        assert "color" in resp.error
+        svc.set_color.assert_not_called()
+
+    def test_out_of_range_component_returns_error(self):
+        svc = _mock_service()
+        payload = json.dumps(
+            {
+                "command": "set.led",
+                "data": {
+                    "device": "Kraken X63",
+                    "channel": "ring",
+                    "mode": "fixed",
+                    "colors": [[255, 0, 300]],
+                },
+            }
+        ).encode()
+        resp = _decode(process_request(payload, svc))
+        assert resp.status == MessageStatus.ERROR
+        assert "color" in resp.error
+        svc.set_color.assert_not_called()
+
 
 class TestHandlerExceptions:
     def test_bad_request_propagates_message(self):

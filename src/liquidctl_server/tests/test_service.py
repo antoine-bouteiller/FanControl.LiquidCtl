@@ -11,7 +11,10 @@ from liquidctl_server.models import (
     LiquidctlException,
     StatusValue,
 )
-from liquidctl_server.service.liquidctl_service import LiquidctlService
+from liquidctl_server.service.liquidctl_service import (
+    LiquidctlService,
+    _stable_device_id,
+)
 
 
 def _make_service():
@@ -50,6 +53,14 @@ class TestStringifyStatus:
         assert result[0].value == pytest.approx(30.0)
         assert result[1].value is None
         assert result[2].value == pytest.approx(800.0)
+
+    def test_short_tuple_is_skipped_without_raising(self, caplog):
+        raw = [("Temp",), ("Fan speed", 800, "rpm")]
+        with caplog.at_level(logging.WARNING):
+            result = LiquidctlService._stringify_status(raw)
+        assert len(result) == 1
+        assert result[0].key == "Fan speed"
+        assert "malformed status tuple" in caplog.text
 
 
 class TestBuildDeviceStatus:
@@ -174,6 +185,22 @@ class TestSetFixedSpeedDeduplication:
 
         with pytest.raises(RuntimeError, match="could not write to device"):
             svc.set_fixed_speed(1, {"channel": "fan1", "duty": 50})
+
+    def test_duty_out_of_range_raises_bad_request(self):
+        svc = _make_service()
+        svc.devices = {1: MagicMock()}
+
+        with pytest.raises(BadRequestException, match="Invalid duty"):
+            svc.set_fixed_speed(1, {"channel": "fan1", "duty": 150})
+
+        svc._executor.submit.assert_not_called()
+
+    def test_non_int_duty_raises_bad_request(self):
+        svc = _make_service()
+        svc.devices = {1: MagicMock()}
+
+        with pytest.raises(BadRequestException, match="Invalid duty"):
+            svc.set_fixed_speed(1, {"channel": "fan1", "duty": "50"})
 
 
 def _make_future(return_value=None):
@@ -595,7 +622,8 @@ class TestFindDevicesFilter:
         self._run(svc, devices, None)
 
         assert len(svc.devices) == 2
-        svc._executor.set_number_of_devices.assert_called_once_with(2)
+        svc._executor.set_devices.assert_called_once()
+        assert len(svc._executor.set_devices.call_args.args[0]) == 2
 
     def test_filter_keeps_only_matching(self, caplog):
         svc = _make_service()
@@ -608,7 +636,8 @@ class TestFindDevicesFilter:
             self._run(svc, devices, re.compile("NZXT", re.IGNORECASE))
 
         assert [d.description for d in svc.devices.values()] == ["NZXT Kraken X63"]
-        svc._executor.set_number_of_devices.assert_called_once_with(1)
+        svc._executor.set_devices.assert_called_once()
+        assert len(svc._executor.set_devices.call_args.args[0]) == 1
         assert "Devices skipped by filter" in caplog.text
 
     def test_filter_matching_all_logs_no_skip(self, caplog):
@@ -630,4 +659,49 @@ class TestFindDevicesFilter:
         self._run(svc, devices, re.compile("NZXT", re.IGNORECASE))
 
         assert svc.devices == {}
-        svc._executor.set_number_of_devices.assert_not_called()
+        svc._executor.set_devices.assert_not_called()
+
+
+def _device_with_identity(description, serial=None, address=None):
+    dev = MagicMock()
+    dev.description = description
+    dev.serial_number = serial
+    dev.address = address
+    return dev
+
+
+class TestStableDeviceId:
+    def test_deterministic_for_same_identity(self):
+        dev1 = _device_with_identity("Kraken X63", serial="SN123", address="1-2")
+        dev2 = _device_with_identity("Kraken X63", serial="SN123", address="1-2")
+
+        assert _stable_device_id(dev1, set()) == _stable_device_id(dev2, set())
+
+    def test_differs_for_same_description_different_address(self):
+        dev1 = _device_with_identity("Kraken X63", serial=None, address="1-2")
+        dev2 = _device_with_identity("Kraken X63", serial=None, address="1-3")
+
+        assert _stable_device_id(dev1, set()) != _stable_device_id(dev2, set())
+
+    def test_serial_number_read_error_falls_back_gracefully(self):
+        dev = MagicMock()
+        dev.description = "Kraken X63"
+        dev.address = "1-2"
+        type(dev).serial_number = property(
+            lambda self: (_ for _ in ()).throw(RuntimeError("not connected"))
+        )
+
+        assert isinstance(_stable_device_id(dev, set()), int)
+
+    def test_collision_bumps_by_one(self):
+        dev1 = _device_with_identity("A", serial="1", address="1")
+        dev2 = _device_with_identity("B", serial="2", address="2")
+        first_id = _stable_device_id(dev1, set())
+
+        with patch(
+            "liquidctl_server.service.liquidctl_service.zlib.crc32",
+            return_value=first_id,
+        ):
+            second_id = _stable_device_id(dev2, {first_id})
+
+        assert second_id == first_id + 1

@@ -36,28 +36,28 @@ class TestDeviceQueueEmpty:
         assert executor.device_queue_empty(999) is True
 
 
-class TestSetNumberOfDevices:
+class TestSetDevices:
     def test_creates_queue_per_device(self):
         executor = DeviceExecutor()
-        executor.set_number_of_devices(3)
+        executor.set_devices([10, 20, 30])
         try:
-            assert executor.device_queue_empty(1) is True
-            assert executor.device_queue_empty(2) is True
-            assert executor.device_queue_empty(3) is True
+            assert executor.device_queue_empty(10) is True
+            assert executor.device_queue_empty(20) is True
+            assert executor.device_queue_empty(30) is True
         finally:
             executor.shutdown()
 
-    def test_zero_devices_creates_no_queues(self):
+    def test_empty_devices_creates_no_queues(self):
         executor = DeviceExecutor()
-        executor.set_number_of_devices(0)
+        executor.set_devices([])
         assert executor.device_queue_empty(1) is True
 
     def test_reinit_shuts_down_previous_pool(self):
         executor = DeviceExecutor()
-        executor.set_number_of_devices(1)
+        executor.set_devices([1])
         first_pool = executor._thread_pool
 
-        executor.set_number_of_devices(2)
+        executor.set_devices([1, 2])
         try:
             assert first_pool._shutdown
             assert executor.submit(2, lambda: 7).result(timeout=2.0) == 7
@@ -68,7 +68,7 @@ class TestSetNumberOfDevices:
 class TestSubmitAndShutdown:
     def test_submit_runs_job_and_returns_result(self):
         executor = DeviceExecutor()
-        executor.set_number_of_devices(1)
+        executor.set_devices([1])
         try:
             future = executor.submit(1, lambda x: x + 1, x=41)
             assert future.result(timeout=2.0) == 42
@@ -77,7 +77,7 @@ class TestSubmitAndShutdown:
 
     def test_shutdown_drains_and_joins(self):
         executor = DeviceExecutor()
-        executor.set_number_of_devices(2)
+        executor.set_devices([1, 2])
         executor.submit(1, lambda: None)
         executor.submit(2, lambda: None)
 

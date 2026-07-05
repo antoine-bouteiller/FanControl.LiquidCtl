@@ -1,7 +1,7 @@
 import queue
 import sys
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 
 class _DeviceJob:
@@ -54,18 +54,19 @@ class DeviceExecutor:
         self._device_queues: Dict[int, queue.SimpleQueue] = {}
         self._thread_pool: Optional[ThreadPoolExecutor] = None
 
-    def set_number_of_devices(self, number_of_devices: int) -> None:
-        """Initialize queues and workers for the given number of devices.
+    def set_devices(self, device_ids: Iterable[int]) -> None:
+        """Initialize queues and workers for the given device ids.
 
         Safe to call again (e.g. on init retry): previous workers are shut
         down first instead of leaking alongside the new pool.
         """
-        if number_of_devices < 1:
+        device_ids = list(device_ids)
+        if not device_ids:
             return
 
         self.shutdown()
-        self._thread_pool = ThreadPoolExecutor(max_workers=number_of_devices)
-        for dev_id in range(1, number_of_devices + 1):
+        self._thread_pool = ThreadPoolExecutor(max_workers=len(device_ids))
+        for dev_id in device_ids:
             dev_queue: queue.SimpleQueue = queue.SimpleQueue()
             self._device_queues[dev_id] = dev_queue
             self._thread_pool.submit(_queue_worker, dev_queue)

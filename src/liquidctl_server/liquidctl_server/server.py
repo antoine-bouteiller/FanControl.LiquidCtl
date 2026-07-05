@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 import msgspec
 
@@ -40,8 +40,19 @@ def handle_set_fixed_speed(service: LiquidctlService, data: msgspec.Raw) -> Any:
     return service.set_fixed_speed(request.device_id, speed_kwargs)
 
 
+def _validate_colors(colors: List[List[int]]) -> None:
+    for color in colors:
+        if len(color) != 3 or not all(
+            isinstance(c, int) and 0 <= c <= 255 for c in color
+        ):
+            raise BadRequestException(
+                f"Invalid color {color!r}: expected 3 ints in [0, 255]"
+            )
+
+
 def handle_set_led(service: LiquidctlService, data: msgspec.Raw) -> Any:
     request = _decode_data(data, LedRequest, "set.led")
+    _validate_colors(request.colors)
     colors = [tuple(color) for color in request.colors]
     return service.set_color(request.device, request.channel, request.mode, colors)
 
