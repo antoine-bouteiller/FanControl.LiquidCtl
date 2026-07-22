@@ -424,6 +424,58 @@ class TestConnectDevice:
         with pytest.raises(LiquidctlException, match="Device connection error"):
             svc._connect_device(1, _device("Kraken"))
 
+    def test_init_failure_disconnects_device(self):
+        svc = _make_service()
+        failing_future = MagicMock()
+        failing_future.result.side_effect = OSError("Could not write to device")
+        svc._executor.submit.side_effect = [
+            _make_future(),
+            failing_future,
+            _make_future(),
+        ]
+        dev = _device("NZXT H1 V2")
+
+        with pytest.raises(OSError, match="Could not write to device"):
+            svc._connect_device(1, dev)
+
+        disconnect_call = svc._executor.submit.call_args_list[2]
+        assert disconnect_call.args == (1, dev.disconnect)
+
+    def test_init_runtime_error_disconnects_and_wraps(self):
+        svc = _make_service()
+        failing_future = MagicMock()
+        failing_future.result.side_effect = RuntimeError("bus fault")
+        svc._executor.submit.side_effect = [
+            _make_future(),
+            failing_future,
+            _make_future(),
+        ]
+        dev = _device("NZXT H1 V2")
+
+        with pytest.raises(LiquidctlException, match="Device connection error"):
+            svc._connect_device(1, dev)
+
+        disconnect_call = svc._executor.submit.call_args_list[2]
+        assert disconnect_call.args == (1, dev.disconnect)
+
+    def test_init_failure_with_failing_disconnect_still_raises(self, caplog):
+        svc = _make_service()
+        failing_init = MagicMock()
+        failing_init.result.side_effect = OSError("Could not write to device")
+        failing_disconnect = MagicMock()
+        failing_disconnect.result.side_effect = OSError("gone")
+        svc._executor.submit.side_effect = [
+            _make_future(),
+            failing_init,
+            failing_disconnect,
+        ]
+
+        with caplog.at_level(logging.WARNING):
+            with pytest.raises(OSError, match="Could not write to device"):
+                svc._connect_device(1, _device("NZXT H1 V2"))
+
+        assert "Failed to disconnect device #1" in caplog.text
+
 
 class TestGetStatuses:
     def test_no_devices_returns_empty(self):

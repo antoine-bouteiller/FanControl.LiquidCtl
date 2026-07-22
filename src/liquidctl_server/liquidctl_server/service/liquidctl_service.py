@@ -133,17 +133,34 @@ class LiquidctlService:
         try:
             connect_job = self._executor.submit(device_id, lc_device.connect)
             connect_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
+        except RuntimeError as err:
+            if "already open" in str(err):
+                logger.warning(f"Device #{device_id} already connected")
+                return
+            raise LiquidctlException(f"Device connection error: {err}") from err
 
+        try:
             init_job = self._executor.submit(device_id, lc_device.initialize)
             init_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
 
             self.speed_channels[device_id] = driver_quirks.speed_channels(lc_device)
-
-        except RuntimeError as err:
-            if "already open" in str(err):
-                logger.warning(f"Device #{device_id} already connected")
-            else:
+        except Exception as err:
+            self._disconnect_after_failed_init(device_id, lc_device)
+            if isinstance(err, RuntimeError):
                 raise LiquidctlException(f"Device connection error: {err}") from err
+            raise
+
+    def _disconnect_after_failed_init(
+        self, device_id: int, lc_device: BaseDriver
+    ) -> None:
+        """Release the HID handle so it does not linger for the process lifetime."""
+        try:
+            disconnect_job = self._executor.submit(device_id, lc_device.disconnect)
+            disconnect_job.result(timeout=DEVICE_OPERATION_TIMEOUT)
+        except Exception as e:
+            logger.warning(
+                f"Failed to disconnect device #{device_id} after init failure: {e}"
+            )
 
     def get_statuses(self) -> List[DeviceStatus]:
         """Get status for all devices."""
