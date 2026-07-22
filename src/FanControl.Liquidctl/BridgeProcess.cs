@@ -34,7 +34,11 @@ namespace FanControl.LiquidCtl
                     return false;
                 }
 
-                KillStrayBridgeProcesses();
+                if (!KillStrayBridgeProcesses())
+                {
+                    _logger.Log("[LiquidCtl] A previous bridge process has not exited yet, not starting a new one.");
+                    return false;
+                }
 
                 _process?.Dispose();
                 _process = new Process
@@ -84,12 +88,14 @@ namespace FanControl.LiquidCtl
             KillStrayBridgeProcesses();
         }
 
-        private static void KillStrayBridgeProcesses()
+        private static bool KillStrayBridgeProcesses()
         {
+            bool allExited = true;
             foreach (var p in Process.GetProcessesByName("liquidctl_server"))
             {
-                try { p.Kill(); p.WaitForExit(1000); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ } finally { p.Dispose(); }
+                try { p.Kill(); allExited &= p.WaitForExit(1000); } catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { /* Expected when process already exited */ } finally { p.Dispose(); }
             }
+            return allExited;
         }
 
         public void Dispose()
