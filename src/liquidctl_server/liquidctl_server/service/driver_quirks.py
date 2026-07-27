@@ -1,5 +1,3 @@
-from typing import List
-
 from liquidctl.driver.base import BaseDriver
 from liquidctl.driver.commander_pro import CommanderPro
 from liquidctl.driver.hydro_platinum import HydroPlatinum
@@ -35,7 +33,7 @@ def _is_a(device: BaseDriver, driver_cls) -> bool:
     return driver_cls is not None and isinstance(device, driver_cls)
 
 
-def speed_channels(device: BaseDriver) -> List[str]:
+def speed_channels(device: BaseDriver) -> list[str]:
     """Controllable speed channels reported by the driver (no uniform API exists)."""
     if (
         isinstance(device, (SmartDevice2, SmartDevice))

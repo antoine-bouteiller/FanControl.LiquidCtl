@@ -470,9 +470,11 @@ class TestConnectDevice:
             failing_disconnect,
         ]
 
-        with caplog.at_level(logging.WARNING):
-            with pytest.raises(OSError, match="Could not write to device"):
-                svc._connect_device(1, _device("NZXT H1 V2"))
+        with (
+            caplog.at_level(logging.WARNING),
+            pytest.raises(OSError, match="Could not write to device"),
+        ):
+            svc._connect_device(1, _device("NZXT H1 V2"))
 
         assert "Failed to disconnect device #1" in caplog.text
 

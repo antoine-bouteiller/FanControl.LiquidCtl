@@ -5,9 +5,9 @@ from liquidctl.driver.hydro_platinum import HydroPlatinum
 from liquidctl.driver.smart_device import SmartDevice, SmartDevice2
 
 from liquidctl_server.service.driver_quirks import (
+    H1V2,
     Aquacomputer,
     ControlHub,
-    H1V2,
     HydroPro,
     speed_channels,
 )

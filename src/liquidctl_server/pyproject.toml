@@ -24,6 +24,10 @@ pattern = '"version":\s*"(?P<version>[^"]+)"'
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.ruff.lint]
+# USB/HID drivers raise anything; the service catches all to keep other devices alive.
+ignore = ["BLE001"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = ["manual"]

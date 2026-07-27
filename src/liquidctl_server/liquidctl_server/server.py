@@ -3,7 +3,8 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import msgspec
 
@@ -40,7 +41,7 @@ def handle_set_fixed_speed(service: LiquidctlService, data: msgspec.Raw) -> Any:
     return service.set_fixed_speed(request.device_id, speed_kwargs)
 
 
-def _validate_colors(colors: List[List[int]]) -> None:
+def _validate_colors(colors: list[list[int]]) -> None:
     for color in colors:
         if len(color) != 3 or not all(
             isinstance(c, int) and 0 <= c <= 255 for c in color
@@ -57,7 +58,7 @@ def handle_set_led(service: LiquidctlService, data: msgspec.Raw) -> Any:
     return service.set_color(request.device, request.channel, request.mode, colors)
 
 
-COMMAND_HANDLERS: Dict[str, Callable] = {
+COMMAND_HANDLERS: dict[str, Callable] = {
     "get.statuses": handle_get_statuses,
     "set.fixed_speed": handle_set_fixed_speed,
     "set.led": handle_set_led,
