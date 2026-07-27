@@ -1,7 +1,8 @@
 import queue
 import sys
+from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any
 
 
 class _DeviceJob:
@@ -27,7 +28,7 @@ class _DeviceJob:
 def _queue_worker(dev_queue: queue.SimpleQueue) -> None:
     """Worker that processes jobs from a device queue sequentially."""
     while True:
-        device_job: Optional[_DeviceJob] = dev_queue.get()
+        device_job: _DeviceJob | None = dev_queue.get()
         if device_job is None:
             return  # Shutdown signal
         try:
@@ -51,8 +52,8 @@ class DeviceExecutor:
     """
 
     def __init__(self) -> None:
-        self._device_queues: Dict[int, queue.SimpleQueue] = {}
-        self._thread_pool: Optional[ThreadPoolExecutor] = None
+        self._device_queues: dict[int, queue.SimpleQueue] = {}
+        self._thread_pool: ThreadPoolExecutor | None = None
 
     def set_devices(self, device_ids: Iterable[int]) -> None:
         """Initialize queues and workers for the given device ids.

@@ -1,12 +1,11 @@
 from enum import Enum
-from typing import List, Optional, Union
 
 import msgspec
 
 
 class StatusValue(msgspec.Struct):
     key: str
-    value: Optional[float]
+    value: float | None
     unit: str
 
 
@@ -31,7 +30,7 @@ class LedRequest(msgspec.Struct):
     device: str
     channel: str
     mode: str
-    colors: List[List[int]]
+    colors: list[list[int]]
 
 
 class PipeRequest(msgspec.Struct):
@@ -42,10 +41,17 @@ class PipeRequest(msgspec.Struct):
     data: msgspec.Raw = msgspec.Raw(b"null")
 
 
+class DeviceStatus(msgspec.Struct):
+    id: int
+    description: str
+    status: list[StatusValue]
+    speed_channels: list[str] = []
+
+
 class BridgeResponse(msgspec.Struct):
     status: MessageStatus
-    data: Optional[Union[List["DeviceStatus"], str]] = None
-    error: Optional[str] = None
+    data: list[DeviceStatus] | str | None = None
+    error: str | None = None
 
 
 class LiquidctlException(Exception):
@@ -56,14 +62,5 @@ class BadRequestException(Exception):
     pass
 
 
-class DeviceStatus(msgspec.Struct):
-    id: int
-    description: str
-    status: List[StatusValue]
-    speed_channels: List[str] = []
-
-
 class PipeError(Exception):
     """Custom exception for pipe operations."""
-
-    pass

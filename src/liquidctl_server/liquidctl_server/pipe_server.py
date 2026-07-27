@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from liquidctl_server import win32_pipe
 from liquidctl_server.models import PipeError
@@ -14,7 +14,7 @@ class PipeServer:
         self.pipe_path = win32_pipe.pipe_path(name)
         self._handler = handler
         self._shutdown = threading.Event()
-        self._handle: Optional[int] = None
+        self._handle: int | None = None
         self._handle_lock = threading.Lock()
         self._thread = threading.Thread(target=self._serve_forever, daemon=True)
 

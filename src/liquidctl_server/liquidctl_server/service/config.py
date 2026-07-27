@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import sys
-from typing import Optional, Pattern
+from re import Pattern
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +24,14 @@ def _is_bundled() -> bool:
     return getattr(sys, "frozen", False) or "__compiled__" in globals()
 
 
-def _plugin_dir() -> Optional[str]:
+def _plugin_dir() -> str | None:
     """Plugin folder (parent of the bridge exe folder), or None in source runs."""
     if not _is_bundled():
         return None
     return os.path.dirname(os.path.dirname(sys.executable))
 
 
-def _read_filter_pattern() -> Optional[str]:
+def _read_filter_pattern() -> str | None:
     """Return the first non-empty, non-comment line of the filter file, if any."""
     plugin_dir = _plugin_dir()
     if plugin_dir is None:
@@ -51,7 +51,7 @@ def _read_filter_pattern() -> Optional[str]:
     return None
 
 
-def load_device_filter() -> Optional[Pattern[str]]:
+def load_device_filter() -> Pattern[str] | None:
     """Compile the configured device-description filter, or None if not set."""
     pattern = _read_filter_pattern()
     if not pattern:

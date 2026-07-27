@@ -3,7 +3,7 @@ import time
 import zlib
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Self
 
 import liquidctl
 from liquidctl.driver.base import BaseDriver
@@ -27,7 +27,7 @@ from liquidctl_server.service.executor import DeviceExecutor
 logger = logging.getLogger(__name__)
 
 
-def _stable_device_id(lc_device: BaseDriver, taken: Set[int]) -> int:
+def _stable_device_id(lc_device: BaseDriver, taken: set[int]) -> int:
     """Derive a device id from device identity instead of discovery order.
 
     The plugin captures this id at load and reuses it for every duty write
@@ -49,20 +49,20 @@ class LiquidctlService:
     """Service for managing liquidctl devices with thread-safe operations."""
 
     def __init__(self) -> None:
-        self.devices: Dict[int, BaseDriver] = {}
-        self.device_status_cache: Dict[int, List[StatusValue]] = {}
-        self.speed_channels: Dict[int, List[str]] = {}
-        self.previous_duty: Dict[str, Tuple[Union[str, int, None], float]] = {}
+        self.devices: dict[int, BaseDriver] = {}
+        self.device_status_cache: dict[int, list[StatusValue]] = {}
+        self.speed_channels: dict[int, list[str]] = {}
+        self.previous_duty: dict[str, tuple[str | int | None, float]] = {}
         self._executor: DeviceExecutor = DeviceExecutor()
 
-    def __enter__(self) -> "LiquidctlService":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.shutdown()
         if exc_value is not None:
             logger.error(
-                f"Exception during service context: {exc_value}", exc_info=True
+                f"Exception during service context: {exc_value}", exc_info=exc_value
             )
 
     def initialize_all(self) -> None:
@@ -78,15 +78,14 @@ class LiquidctlService:
                         f"failed: {e}"
                     )
                 else:
-                    logger.error(
-                        f"Failed to initialize devices after {MAX_INIT_RETRIES} attempts",
-                        exc_info=True,
+                    logger.exception(
+                        f"Failed to initialize devices after {MAX_INIT_RETRIES} attempts"
                     )
 
     def _find_devices(self) -> None:
         """Find all liquidctl devices and connect to them."""
         try:
-            found_devices: List[BaseDriver] = list(liquidctl.find_liquidctl_devices())
+            found_devices: list[BaseDriver] = list(liquidctl.find_liquidctl_devices())
         except ValueError:
             logger.info("No Liquidctl devices detected")
             return
@@ -107,8 +106,8 @@ class LiquidctlService:
             logger.info("No Liquidctl devices left after filtering")
             return
 
-        taken: Set[int] = set()
-        device_ids: List[int] = []
+        taken: set[int] = set()
+        device_ids: list[int] = []
         for lc_device in found_devices:
             device_id = _stable_device_id(lc_device, taken)
             taken.add(device_id)
@@ -162,7 +161,7 @@ class LiquidctlService:
                 f"Failed to disconnect device #{device_id} after init failure: {e}"
             )
 
-    def get_statuses(self) -> List[DeviceStatus]:
+    def get_statuses(self) -> list[DeviceStatus]:
         """Get status for all devices."""
         if not self.devices:
             return []
@@ -175,7 +174,7 @@ class LiquidctlService:
             for device_id, lc_device in self.devices.items()
         }
 
-        statuses: List[DeviceStatus] = []
+        statuses: list[DeviceStatus] = []
         for device_id, lc_device in self.devices.items():
             status = self._get_current_or_cached_device_status(
                 device_id, lc_device, status_jobs[device_id]
@@ -187,7 +186,7 @@ class LiquidctlService:
 
     def _get_current_or_cached_device_status(
         self, device_id: int, lc_device: BaseDriver, status_job: Future
-    ) -> Optional[DeviceStatus]:
+    ) -> DeviceStatus | None:
         """Get status for a single device, falling back to cache on timeout."""
         try:
             raw_status = status_job.result(timeout=DEVICE_STATUS_TIMEOUT)
@@ -208,7 +207,7 @@ class LiquidctlService:
 
     def _handle_status_timeout(
         self, device_id: int, lc_device: BaseDriver
-    ) -> Optional[DeviceStatus]:
+    ) -> DeviceStatus | None:
         """Handle status timeout with async retry or cache fallback."""
         cached = self._build_status_from_cache(device_id, lc_device)
 
@@ -231,7 +230,7 @@ class LiquidctlService:
 
         return cached
 
-    def _long_async_status_request(self, device_id: int) -> Optional[DeviceStatus]:
+    def _long_async_status_request(self, device_id: int) -> DeviceStatus | None:
         """Long-running async status request that updates the cache."""
         lc_device = self.devices[device_id]
         raw_status = lc_device.get_status()
@@ -242,7 +241,7 @@ class LiquidctlService:
 
     def _build_status_from_cache(
         self, device_id: int, lc_device: BaseDriver
-    ) -> Optional[DeviceStatus]:
+    ) -> DeviceStatus | None:
         """Build a DeviceStatus from cached values."""
         cached = self.device_status_cache.get(device_id)
         if cached is None:
@@ -251,7 +250,7 @@ class LiquidctlService:
         return self._build_device_status(device_id, lc_device, cached)
 
     def _build_device_status(
-        self, device_id: int, lc_device: BaseDriver, status_values: List[StatusValue]
+        self, device_id: int, lc_device: BaseDriver, status_values: list[StatusValue]
     ) -> DeviceStatus:
         return DeviceStatus(
             id=device_id,
@@ -261,7 +260,7 @@ class LiquidctlService:
         )
 
     def set_fixed_speed(
-        self, device_id: int, speed_kwargs: Dict[str, Union[str, int]]
+        self, device_id: int, speed_kwargs: dict[str, str | int]
     ) -> None:
         """Set fixed speed for a device channel.
 
@@ -299,7 +298,7 @@ class LiquidctlService:
             ) from err
         self.previous_duty[cache_key] = (duty, time.monotonic())
 
-    def _is_duty_fresh(self, cache_key: str, duty: Union[str, int, None]) -> bool:
+    def _is_duty_fresh(self, cache_key: str, duty: str | int | None) -> bool:
         entry = self.previous_duty.get(cache_key)
         if entry is None:
             return False
@@ -339,7 +338,7 @@ class LiquidctlService:
                     logger.info("    %s = %r", attr, value)
         logger.info("=== End device inventory ===")
 
-    def _resolve_device_id(self, device_match: str) -> Optional[int]:
+    def _resolve_device_id(self, device_match: str) -> int | None:
         """Find a device id whose description contains device_match (case-insensitive)."""
         needle = device_match.lower()
         for device_id, lc_device in self.devices.items():
@@ -352,7 +351,7 @@ class LiquidctlService:
         device_match: str,
         channel: str,
         mode: str,
-        colors: List[Tuple[int, int, int]],
+        colors: list[tuple[int, int, int]],
     ) -> None:
         """Set per-LED colors for a device channel via the serialized queue."""
         logger.info(
@@ -418,13 +417,13 @@ class LiquidctlService:
 
     @staticmethod
     def _stringify_status(
-        statuses: Union[List[Tuple[str, Union[str, int, float], str]], None],
-    ) -> List[StatusValue]:
+        statuses: list[tuple[str, str | int | float, str]] | None,
+    ) -> list[StatusValue]:
         """Convert raw liquidctl status to StatusValue list."""
         if statuses is None:
             return []
 
-        result: List[StatusValue] = []
+        result: list[StatusValue] = []
         for status in statuses:
             if len(status) < 3:
                 logger.warning(f"Skipping malformed status tuple: {status!r}")
