@@ -56,11 +56,6 @@
       commitMessageTopic: 'package {{depName}}',
     },
     {
-      matchDepTypes: ['devDependencies', 'dev', 'packageManager'],
-      semanticCommitType: 'test',
-      semanticCommitScope: 'deps',
-    },
-    {
       // Everything in the test project is a dev dependency. NuGet has no
       // devDependencies depType, so match the test project file instead.
       matchFileNames: ['**/*.Tests.csproj'],
