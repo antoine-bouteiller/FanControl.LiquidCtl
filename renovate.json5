@@ -13,6 +13,13 @@
   ignorePresets: ['mergeConfidence:all-badges'],
   configMigration: true,
   minimumReleaseAge: '1 day',
+  packageRules: [
+    {
+      description: 'Keep the Conventional Commits preset compatible with release-notes-generator',
+      matchPackageNames: ['conventional-changelog-conventionalcommits'],
+      enabled: false,
+    },
+  ],
   gitIgnoredAuthors: ['227055450+renohate[bot]@users.noreply.github.com'],
   labels: ['renovate'],
   'pre-commit': {
