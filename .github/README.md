@@ -1,6 +1,12 @@
-# FanControl.Liquidctl
+<div align="center">
+  <h1>FanControl.Liquidctl</h1>
 
-[![codecov](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl/graph/badge.svg?token=AO71X4SR9R)](https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl)
+<a href="https://codecov.io/github/antoine-bouteiller/FanControl.LiquidCtl"><img alt="Codecov coverage" src="https://img.shields.io/codecov/c/github/antoine-bouteiller/FanControl.LiquidCtl?style=for-the-badge&amp;logo=codecov&amp;logoColor=cad3f5&amp;colorA=363a4f"></a>
+<a href="https://dotnet.microsoft.com/download/dotnet/10.0"><img alt=".NET 10" src="https://img.shields.io/badge/%20-10.0-8aadf4?style=for-the-badge&amp;labelColor=363a4f&amp;logo=dotnet&amp;logoColor=cad3f5"></a>
+<a href="../../releases/latest"><img alt="Latest GitHub release" src="https://img.shields.io/github/v/release/antoine-bouteiller/FanControl.LiquidCtl?style=for-the-badge&amp;colorA=363a4f&amp;colorB=c6a0f6&amp;logo=github&amp;logoColor=cad3f5"></a>
+<a href="../../releases"><img alt="Total GitHub release downloads" src="https://img.shields.io/github/downloads/antoine-bouteiller/FanControl.LiquidCtl/total?style=for-the-badge&amp;colorA=363a4f&amp;colorB=f5a97f&amp;logo=github&amp;logoColor=cad3f5"></a>
+<a href="LICENSE.txt"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-a6da95?style=for-the-badge&amp;labelColor=363a4f&amp;logo=opensourceinitiative&amp;logoColor=cad3f5"></a>
+</div>
 
 > **Important:** This plugin requires the **.NET 10** version of FanControl. Make sure you are running a FanControl release built on .NET 10.
 
