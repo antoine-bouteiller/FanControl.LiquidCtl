@@ -1,6 +1,6 @@
 {
   "name": "fancontrol-liquidctl",
-  "version": "2.6.1-beta.1",
+  "version": "2.6.1",
   "private": true,
   "scripts": {
     "prepare": "lefthook install",
