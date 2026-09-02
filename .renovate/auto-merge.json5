@@ -10,6 +10,13 @@
       ignoreTests: false,
     },
     {
+      description: 'Auto-merge lock file maintenance refreshes',
+      matchUpdateTypes: ['lockFileMaintenance'],
+      automerge: true,
+      automergeType: 'pr',
+      ignoreTests: false,
+    },
+    {
       description: 'Auto-merge GitHub Actions patch and digest updates',
       matchManagers: ['github-actions'],
       automerge: true,

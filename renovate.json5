@@ -13,6 +13,10 @@
   ignorePresets: ['mergeConfidence:all-badges'],
   configMigration: true,
   minimumReleaseAge: '1 day',
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ['before 5am on monday'],
+  },
   packageRules: [
     {
       description: 'Keep the Conventional Commits preset compatible with release-notes-generator',
