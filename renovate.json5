@@ -20,6 +20,14 @@
       enabled: false,
     },
   ],
+  vulnerabilityAlerts: {
+    enabled: true,
+    addLabels: ['security'],
+    semanticCommitType: 'fix',
+    semanticCommitScope: 'deps',
+    minimumReleaseAge: null,
+    schedule: ['at any time'],
+  },
   gitIgnoredAuthors: ['227055450+renohate[bot]@users.noreply.github.com'],
   labels: ['renovate'],
   'pre-commit': {
