@@ -43,7 +43,7 @@ jobs:
           dotnet test -c Release --logger "console;verbosity=normal" --logger "trx;LogFileName=test-results.trx" --logger "junit;LogFilePath=test-results-junit.xml" --collect:"XPlat Code Coverage" --results-directory TestResults
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
             --cov-report=xml:coverage.xml
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
