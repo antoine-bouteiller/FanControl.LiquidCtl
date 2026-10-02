@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 path = "../../package.json"
 pattern = '"version":\s*"(?P<version>[^"]+)"'
 
+[tool.uv]
+exclude-newer = "1 day"
+
 [tool.hatch.metadata]
 allow-direct-references = true
 

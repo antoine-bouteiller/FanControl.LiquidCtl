@@ -16,6 +16,8 @@
   lockFileMaintenance: {
     enabled: true,
     schedule: ['before 5am on monday'],
+    // Lock refreshes have no release timestamp, so stability-days stays pending forever; pnpm enforces its own 1-day age.
+    minimumReleaseAge: null,
   },
   packageRules: [
     {
