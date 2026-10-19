@@ -5,12 +5,16 @@ FanControl plugin that bridges liquidctl (Python) into FanControl (Windows) to c
 ## Tech Stack
 
 - **C# Plugin:** .NET 10, IPlugin3 interface
-- **Python Bridge:** Python 3.14+, uv, liquidctl
+- **Python Bridge:** Python 3.15, uv, liquidctl
+- **Toolchain:** pinned in `mise.toml` (`mise install`)
 - **IPC:** Named Pipes with JSON serialization (msgspec on the Python side)
 
 ## Commands
 
 ```bash
+# Toolchain + git hooks
+mise install && pnpm install
+
 # C# Plugin
 dotnet build src/FanControl.Liquidctl
 

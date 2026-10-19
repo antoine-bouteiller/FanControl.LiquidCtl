@@ -42,6 +42,14 @@
       commitMessageTopic: 'package {{depName}}',
     },
     {
+      // Python and .NET ship in the release artifact, so their bumps keep the `build` type.
+      matchManagers: ['mise'],
+      matchPackageNames: ['!python', '!dotnet'],
+      addLabels: ['renovate/mise'],
+      semanticCommitType: 'chore',
+      commitMessageTopic: 'tool {{depName}}',
+    },
+    {
       matchManagers: ['pip_requirements', 'pip-compile', 'pep621', 'uv'],
       matchDepTypes: ['dependencies'],
       addLabels: ['renovate/python'],

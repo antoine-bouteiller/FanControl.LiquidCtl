@@ -148,8 +148,12 @@ The plugin consists of two main components:
 
 ### Prerequisites
 
-- .NET 10 SDK
-- [uv](https://github.com/astral-sh/uv)
+[mise](https://mise.jdx.dev) pins the toolchain (.NET SDK, Python, uv, Node, pnpm) in `mise.toml`:
+
+```bash
+mise install
+pnpm install
+```
 
 ### Building
 
