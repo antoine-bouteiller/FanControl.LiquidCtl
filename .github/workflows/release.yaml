@@ -55,7 +55,6 @@ jobs:
             nuitka-${{ runner.os }}-
 
       - name: Semantic Release
-        id: semantic
-        uses: cycjimmy/semantic-release-action@03595b5eaf44910cf239ff20904cc52d410f97d4 # v8.1.2
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
