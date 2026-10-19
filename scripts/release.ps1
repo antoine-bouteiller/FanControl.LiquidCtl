@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 Push-Location src/FanControl.Liquidctl
 dotnet build -c Release

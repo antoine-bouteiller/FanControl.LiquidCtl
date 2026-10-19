@@ -69,6 +69,8 @@ jobs:
 
       - name: Build and Archive
         run: pwsh ./scripts/release.ps1
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}\uv
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

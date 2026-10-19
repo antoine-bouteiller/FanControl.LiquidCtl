@@ -58,3 +58,4 @@ jobs:
         run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UV_CACHE_DIR: ${{ runner.temp }}\uv

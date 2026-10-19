@@ -71,7 +71,10 @@ jobs:
           install_args: python uv
 
       - name: Lint Python Bridge
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}\uv
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           Set-Location .\src\liquidctl_server
           uv sync
           uv run ruff check
@@ -89,7 +92,10 @@ jobs:
           install_args: python uv
 
       - name: Run Python Tests
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}\uv
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           Set-Location .\src\liquidctl_server
           uv sync --group dev
           uv run pytest tests/ `
