@@ -1,8 +1,8 @@
 [tools]
-dotnet = "10.0.402"
-python = "3.15.0"
-uv = "0.13.1"
-node = "24.22.0"
+dotnet = "10"
+python = "3.15"
+uv = "0.13"
+node = "24"
 pnpm = "12"
 
 [env]
