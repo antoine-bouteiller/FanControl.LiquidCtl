@@ -8,7 +8,7 @@
   packageRules: [
     {
       description: 'Python bumps wait until Nuitka and Dependabot support the new version',
-      matchPackageNames: ['python'],
+      matchDepNames: ['python'],
       enabled: false,
     },
     {
@@ -33,7 +33,7 @@
     {
       // Python and .NET ship in the release artifact, so their bumps keep the `build` type.
       matchManagers: ['mise'],
-      matchPackageNames: ['!python', '!dotnet'],
+      matchDepNames: ['!python', '!dotnet'],
       semanticCommitType: 'chore',
     },
     {
