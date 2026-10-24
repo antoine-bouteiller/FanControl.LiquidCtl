@@ -1,23 +1,9 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
-  dependencyDashboard: false,
-  extends: [
-    'config:recommended',
-    ':disableRateLimiting',
-    ':ignoreUnstable',
-    'helpers:pinGitHubActionDigestsToSemver',
-    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/auto-merge.json5',
-    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/groups.json5',
-    'antoine-bouteiller/FanControl.LiquidCtl//.renovate/semantic-commits.json5',
-  ],
-  ignorePresets: ['mergeConfidence:all-badges'],
-  configMigration: true,
-  minimumReleaseAge: '1 day',
+  extends: ['github>antoine-bouteiller/renovate'],
   lockFileMaintenance: {
     enabled: true,
     schedule: ['before 5am on monday'],
-    // Lock refreshes have no release timestamp, so stability-days stays pending forever; pnpm enforces its own 1-day age.
-    minimumReleaseAge: null,
   },
   packageRules: [
     {
@@ -25,18 +11,32 @@
       matchPackageNames: ['conventional-changelog-conventionalcommits'],
       enabled: false,
     },
+    {
+      description: 'Auto-merge npm updates without waiting for CI (no CI runs on npm dependency changes)',
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['patch', 'minor'],
+      automerge: true,
+      automergeType: 'pr',
+      ignoreTests: true,
+    },
+    {
+      // Dependencies ship in the release artifact, so bumps use `build`.
+      matchManagers: ['!github-actions', '!npm'],
+      matchUpdateTypes: ['major', 'minor', 'patch', 'digest'],
+      semanticCommitType: 'build',
+    },
+    {
+      // Python and .NET ship in the release artifact, so their bumps keep the `build` type.
+      matchManagers: ['mise'],
+      matchPackageNames: ['!python', '!dotnet'],
+      semanticCommitType: 'chore',
+    },
+    {
+      // Everything in the test project is a dev dependency. NuGet has no
+      // devDependencies depType, so match the test project file instead.
+      matchFileNames: ['**/*.Tests.csproj'],
+      semanticCommitType: 'test',
+      semanticCommitScope: 'deps',
+    },
   ],
-  vulnerabilityAlerts: {
-    enabled: true,
-    addLabels: ['security'],
-    semanticCommitType: 'fix',
-    semanticCommitScope: 'deps',
-    minimumReleaseAge: null,
-    schedule: ['at any time'],
-  },
-  gitIgnoredAuthors: ['227055450+renohate[bot]@users.noreply.github.com'],
-  labels: ['renovate'],
-  'pre-commit': {
-    enabled: true,
-  },
 }
