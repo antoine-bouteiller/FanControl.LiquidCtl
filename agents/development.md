@@ -79,7 +79,7 @@ uv run pytest tests/
 
 - .NET Version: 10.0
 - C# Language Version: Latest
-- Python Version: 3.15
+- Python Version: 3.14
 - Toolchain versions: `mise.toml`
 - FanControl Plugin Interface: IPlugin3
 - Target Platform: Windows (win-x64)

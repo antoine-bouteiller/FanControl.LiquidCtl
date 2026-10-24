@@ -7,6 +7,11 @@
   },
   packageRules: [
     {
+      description: 'Python bumps wait until Nuitka and Dependabot support the new version',
+      matchPackageNames: ['python'],
+      enabled: false,
+    },
+    {
       description: 'Keep the Conventional Commits preset compatible with release-notes-generator',
       matchPackageNames: ['conventional-changelog-conventionalcommits'],
       enabled: false,
