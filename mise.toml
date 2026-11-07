@@ -2,7 +2,7 @@
 dotnet = "10"
 python = "3.14"
 uv = "0.13"
-node = "24"
+node = "26"
 pnpm = "12"
 
 [env]
