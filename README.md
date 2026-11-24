@@ -148,11 +148,11 @@ The plugin consists of two main components:
 
 ### Prerequisites
 
-[mise](https://mise.jdx.dev) pins the toolchain (.NET SDK, Python, uv, Node, pnpm) in `mise.toml`:
+[mise](https://mise.jdx.dev) pins the toolchain (.NET SDK, Python, uv, lefthook) in `mise.toml`:
 
 ```bash
 mise install
-pnpm install
+lefthook install
 ```
 
 ### Building

@@ -12,16 +12,8 @@
       enabled: false,
     },
     {
-      description: 'Auto-merge npm updates without waiting for CI (no CI runs on npm dependency changes)',
-      matchManagers: ['npm'],
-      matchUpdateTypes: ['patch', 'minor'],
-      automerge: true,
-      automergeType: 'pr',
-      ignoreTests: true,
-    },
-    {
       // Dependencies ship in the release artifact, so bumps use `build`.
-      matchManagers: ['!github-actions', '!npm'],
+      matchManagers: ['!github-actions'],
       matchUpdateTypes: ['major', 'minor', 'patch', 'digest'],
       semanticCommitType: 'build',
     },

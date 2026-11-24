@@ -17,6 +17,3 @@ test-results.xml
 
 # Claude
 settings.local.json
-
-# node
-node_modules

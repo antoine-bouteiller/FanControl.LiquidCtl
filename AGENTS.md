@@ -13,7 +13,7 @@ FanControl plugin that bridges liquidctl (Python) into FanControl (Windows) to c
 
 ```bash
 # Toolchain + git hooks
-mise install && pnpm install
+mise install && lefthook install
 
 # C# Plugin
 dotnet build src/FanControl.Liquidctl
