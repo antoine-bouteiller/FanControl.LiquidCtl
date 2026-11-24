@@ -40,9 +40,8 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
-
-      - name: Install Node dependencies
-        run: pnpm install --frozen-lockfile
+        with:
+          install_args: dotnet python uv
 
       - name: Cache Nuitka
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -54,8 +53,8 @@ jobs:
           restore-keys: |
             nuitka-${{ runner.os }}-
 
-      - name: Semantic Release
-        run: pnpm exec semantic-release
+      - name: Publish Release
+        run: ./scripts/publish.ps1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UV_CACHE_DIR: ${{ runner.temp }}\uv

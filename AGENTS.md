@@ -29,6 +29,9 @@ cd src/liquidctl_server && uv run pytest tests/
 
 # Full Release
 .\scripts\release.ps1
+
+# Preview the next GitHub release (CI publishes it)
+.\scripts\publish.ps1 -DryRun
 ```
 
 ## File Structure
